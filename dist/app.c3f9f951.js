@@ -43803,7 +43803,7 @@ var MapControls = /*#__PURE__*/function (_OrbitControls) {
 
 exports.MapControls = MapControls;
 },{"three":"../../../node_modules/three/build/three.module.js"}],"js/shaders/vertex.glsl":[function(require,module,exports) {
-module.exports = "#define GLSLIFY 1\nuniform float time;\nuniform float uProgress;\nuniform vec2 uResolution;\nuniform vec2 uQuadSize;\nuniform vec4 uCorners;\n\nvarying vec2 vSize;\nvarying vec2 vUv;\nvoid main() {\n  // float PI = 3.1415926;\n  vUv = uv;\n  // float sine = sin(PI * uProgress);\n  // float waves = sine * 0.1 * sin(5. * length(uv) + 15. * uProgress);\n  vec4 defaultState = modelMatrix * vec4(position, 1.0);\n  vec4 fullScreenState = vec4(position, 1.0);\n  fullScreenState.x *= uResolution.x;\n  fullScreenState.y *= uResolution.y;\n  float cornersProgress = mix(mix(uCorners.z, uCorners.w, uv.x), mix(uCorners.x, uCorners.y, uv.x), uv.y);\n\n  vec4 finalState = mix(defaultState, fullScreenState, cornersProgress);\n\n  vSize = mix(uQuadSize, uResolution, cornersProgress);\n\n  gl_Position = projectionMatrix * viewMatrix * finalState;\n}";
+module.exports = "#define GLSLIFY 1\nuniform float time;\nuniform float uProgress;\nuniform vec2 uResolution;\nuniform vec2 uQuadSize;\nuniform vec4 uCorners;\n\nvarying vec2 vSize;\nvarying vec2 vUv;\nvoid main() {\n  // float PI = 3.1415926;\n  vUv = uv;\n  // float sine = sin(PI * uProgress);\n  // float waves = sine * 0.1 * sin(5. * length(uv) + 15. * uProgress);\n  vec4 defaultState = modelMatrix * vec4(position, 1.0);\n  vec4 fullScreenState = vec4(position, 1.0);\n  fullScreenState.x *= uResolution.x;\n  fullScreenState.y *= uResolution.y;\n  fullScreenState.z *= uCorners.x;\n  float cornersProgress = mix(mix(uCorners.z, uCorners.w, uv.x), mix(uCorners.x, uCorners.y, uv.x), uv.y);\n\n  vec4 finalState = mix(defaultState, fullScreenState, cornersProgress);\n\n  vSize = mix(uQuadSize, uResolution, cornersProgress);\n\n  gl_Position = projectionMatrix * viewMatrix * finalState;\n}";
 },{}],"js/shaders/fragment.glsl":[function(require,module,exports) {
 module.exports = "#define GLSLIFY 1\nuniform float time;\nuniform float uProgress;\nuniform vec2 uTextureSize;\nuniform sampler2D uTexture;\n\nvarying vec2 vUv;\nvarying vec2 vSize;\n\nvec2 getUV(vec2 uv, vec2 textureSize, vec2 quadSize){\n    vec2 tempUV = uv - vec2(0.5);\n\n    float quadAspect = quadSize.x/quadSize.y;\n    float textureAspect = textureSize.x/textureSize.y;\n    if(quadAspect<textureAspect){\n        tempUV = tempUV*vec2(quadAspect/textureAspect,1.);\n    } else{\n        tempUV = tempUV*vec2(1.,textureAspect/quadAspect);\n    }\n\n    tempUV += vec2(0.5);\n    return tempUV;\n}\nvoid main() {\n\n    vec2 correctUV = getUV(vUv,uTextureSize,vSize);\n    vec4 image = texture2D(uTexture,correctUV);\n    // gl_FragColor = vec4( vUv,0.,1.);\n    gl_FragColor = image;\n}";
 },{}],"img/texture.jpg":[function(require,module,exports) {
@@ -53516,8 +53516,8 @@ var Sketch = /*#__PURE__*/function () {
     this.asscroll.enable({
       horizontalScroll: true
     });
-    this.time = 0;
-    this.setUpSettings();
+    this.time = 0; // this.setUpSettings()
+
     this.addObjects();
     this.resize();
     this.render();
@@ -53571,7 +53571,7 @@ var Sketch = /*#__PURE__*/function () {
     value: function addObjects() {
       var _this2 = this;
 
-      this.geometry = new THREE.PlaneBufferGeometry(1, 1, 100, 100);
+      this.geometry = new THREE.PlaneGeometry(1, 1, 100, 100);
       this.material = new THREE.ShaderMaterial({
         // wireframe: true,
         vertexShader: _vertex.default,
@@ -53600,19 +53600,6 @@ var Sketch = /*#__PURE__*/function () {
           }
         }
       });
-      this.tl = _gsap.default.timeline().to(this.material.uniforms.uCorners.value, {
-        x: 1,
-        duration: 1
-      }).to(this.material.uniforms.uCorners.value, {
-        y: 1,
-        duration: 1
-      }, 0.1).to(this.material.uniforms.uCorners.value, {
-        z: 1,
-        duration: 1
-      }, 0.2).to(this.material.uniforms.uCorners.value, {
-        w: 1,
-        duration: 1
-      }, 0.5);
       this.mesh = new THREE.Mesh(this.geometry, this.material);
       this.mesh.scale.set(300, 300, 1); // this.scene.add(this.mesh);
 
@@ -53628,6 +53615,36 @@ var Sketch = /*#__PURE__*/function () {
         var texture = new THREE.Texture(img);
         texture.needsUpdate = true;
         m.uniforms.uTexture.value = texture;
+        img.addEventListener('mouseover', function () {
+          _this2.tl = _gsap.default.timeline().to(m.uniforms.uCorners.value, {
+            x: 1,
+            duration: 0.4
+          }).to(m.uniforms.uCorners.value, {
+            y: 1,
+            duration: 0.4
+          }, 0.1).to(m.uniforms.uCorners.value, {
+            z: 1,
+            duration: 0.4
+          }, 0.2).to(m.uniforms.uCorners.value, {
+            w: 1,
+            duration: 0.4
+          }, 0.5);
+        });
+        img.addEventListener('mouseout', function () {
+          _this2.tl = _gsap.default.timeline().to(m.uniforms.uCorners.value, {
+            x: 0,
+            duration: 0.4
+          }).to(m.uniforms.uCorners.value, {
+            y: 0,
+            duration: 0.4
+          }, 0.1).to(m.uniforms.uCorners.value, {
+            z: 0,
+            duration: 0.4
+          }, 0.2).to(m.uniforms.uCorners.value, {
+            w: 0,
+            duration: 0.4
+          }, 0.5);
+        });
         var mesh = new THREE.Mesh(_this2.geometry, m);
 
         _this2.scene.add(mesh);
@@ -53659,9 +53676,9 @@ var Sketch = /*#__PURE__*/function () {
       this.time += 0.05;
       this.material.uniforms.uTime.value = this.time;
       this.asscroll.update();
-      this.setPosition();
-      this.material.uniforms.uProgress.value = this.settings.progress;
-      this.tl.progress(this.settings.progress);
+      this.setPosition(); // this.material.uniforms.uProgress.value = this.settings.progress
+      // this.tl.progress(this.settings.progress)
+
       this.mesh.rotation.x = this.time / 2000;
       this.mesh.rotation.y = this.time / 1000;
       this.renderer.render(this.scene, this.camera);
@@ -53704,7 +53721,7 @@ var parent = module.bundle.parent;
 if ((!parent || !parent.isParcelRequire) && typeof WebSocket !== 'undefined') {
   var hostname = "" || location.hostname;
   var protocol = location.protocol === 'https:' ? 'wss' : 'ws';
-  var ws = new WebSocket(protocol + '://' + hostname + ':' + "58826" + '/');
+  var ws = new WebSocket(protocol + '://' + hostname + ':' + "53246" + '/');
 
   ws.onmessage = function (event) {
     checkedAssets = {};
