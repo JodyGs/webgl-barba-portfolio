@@ -53509,15 +53509,17 @@ var Sketch = /*#__PURE__*/function () {
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     this.container.appendChild(this.renderer.domElement);
     this.controls = new _OrbitControls.OrbitControls(this.camera, this.renderer.domElement);
-    this.asscroll = new _asscroll.default();
+    this.materials = [];
+    this.asscroll = new _asscroll.default({
+      disableRaf: true
+    });
     this.asscroll.enable({
       horizontalScroll: true
     });
     this.time = 0;
-    this.materials = [];
     this.setUpSettings();
-    this.resize();
     this.addObjects();
+    this.resize();
     this.render();
     this.setupResize();
   }
@@ -53534,11 +53536,30 @@ var Sketch = /*#__PURE__*/function () {
   }, {
     key: "resize",
     value: function resize() {
+      var _this = this;
+
       this.width = this.container.offsetWidth;
       this.height = this.container.offsetHeight;
       this.renderer.setSize(this.width, this.height);
       this.camera.aspect = this.width / this.height;
       this.camera.updateProjectionMatrix();
+      this.camera.fov = Math.atan(this.height / 2 / 600) * 180 / Math.PI * 2;
+      this.materials.forEach(function (m) {
+        m.uniforms.uResolution.value.x = _this.width;
+        m.uniforms.uResolution.value.y = _this.height;
+      });
+      this.imageStore.forEach(function (i) {
+        var bounds = i.img.getBoundingClientRect();
+        i.mesh.scale.set(bounds.width, bounds.height, 1);
+        i.top = bounds.top;
+        i.left = bounds.left + _this.asscroll.currentPos;
+        i.width = bounds.width;
+        i.height = bounds.height;
+        i.mesh.material.uniforms.uQuadSize.value.x = bounds.width;
+        i.mesh.material.uniforms.uQuadSize.value.y = bounds.height;
+        i.mesh.material.uniforms.uTextureSize.value.x = bounds.width;
+        i.mesh.material.uniforms.uTextureSize.value.y = bounds.height;
+      });
     }
   }, {
     key: "setupResize",
@@ -53548,7 +53569,7 @@ var Sketch = /*#__PURE__*/function () {
   }, {
     key: "addObjects",
     value: function addObjects() {
-      var _this = this;
+      var _this2 = this;
 
       this.geometry = new THREE.PlaneBufferGeometry(1, 1, 100, 100);
       this.material = new THREE.ShaderMaterial({
@@ -53600,16 +53621,16 @@ var Sketch = /*#__PURE__*/function () {
       this.imageStore = this.images.map(function (img) {
         var bounds = img.getBoundingClientRect();
 
-        var m = _this.material.clone();
+        var m = _this2.material.clone();
 
-        _this.materials.push(m);
+        _this2.materials.push(m);
 
         var texture = new THREE.Texture(img);
         texture.needsUpdate = true;
         m.uniforms.uTexture.value = texture;
-        var mesh = new THREE.Mesh(_this.geometry, m);
+        var mesh = new THREE.Mesh(_this2.geometry, m);
 
-        _this.scene.add(mesh);
+        _this2.scene.add(mesh);
 
         mesh.scale.set(bounds.width, bounds.height, 1);
         return {
@@ -53625,11 +53646,11 @@ var Sketch = /*#__PURE__*/function () {
   }, {
     key: "setPosition",
     value: function setPosition() {
-      var _this2 = this;
+      var _this3 = this;
 
       this.imageStore.forEach(function (obj) {
-        obj.mesh.position.x = -_this2.asscroll.currentPos + obj.left - _this2.width / 2 + obj.width / 2;
-        obj.mesh.position.y = -obj.top + _this2.height / 2 - obj.height / 2;
+        obj.mesh.position.x = -_this3.asscroll.currentPos + obj.left - _this3.width / 2 + obj.width / 2;
+        obj.mesh.position.y = -obj.top + _this3.height / 2 - obj.height / 2;
       });
     }
   }, {
@@ -53637,6 +53658,7 @@ var Sketch = /*#__PURE__*/function () {
     value: function render() {
       this.time += 0.05;
       this.material.uniforms.uTime.value = this.time;
+      this.asscroll.update();
       this.setPosition();
       this.material.uniforms.uProgress.value = this.settings.progress;
       this.tl.progress(this.settings.progress);

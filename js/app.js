@@ -27,16 +27,18 @@ export default class Sketch {
     this.container.appendChild(this.renderer.domElement);
     this.controls = new OrbitControls(this.camera, this.renderer.domElement)
 
-    this.asscroll = new ASScroll()
+    this.materials = []
+    this.asscroll = new ASScroll({
+      disableRaf: true
+    })
 
     this.asscroll.enable({
-      horizontalScroll: true
+      horizontalScroll: true,
     })
     this.time = 0;
-    this.materials = []
     this.setUpSettings()
-    this.resize()
     this.addObjects()
+    this.resize()
     this.render()
     this.setupResize()
   }
@@ -55,6 +57,28 @@ export default class Sketch {
     this.renderer.setSize(this.width, this.height)
     this.camera.aspect = this.width / this.height
     this.camera.updateProjectionMatrix()
+
+    this.camera.fov = (Math.atan((this.height / 2) / 600) * 180 / Math.PI) * 2;
+
+    this.materials.forEach(m => {
+      m.uniforms.uResolution.value.x = this.width;
+      m.uniforms.uResolution.value.y = this.height;
+    })
+
+    this.imageStore.forEach(i => {
+      let bounds = i.img.getBoundingClientRect();
+      i.mesh.scale.set(bounds.width, bounds.height, 1);
+      i.top = bounds.top;
+      i.left = bounds.left + this.asscroll.currentPos;
+      i.width = bounds.width;
+      i.height = bounds.height;
+
+      i.mesh.material.uniforms.uQuadSize.value.x = bounds.width;
+      i.mesh.material.uniforms.uQuadSize.value.y = bounds.height;
+
+      i.mesh.material.uniforms.uTextureSize.value.x = bounds.width;
+      i.mesh.material.uniforms.uTextureSize.value.y = bounds.height;
+    })
   }
 
   setupResize() {
@@ -138,6 +162,7 @@ export default class Sketch {
   render() {
     this.time += 0.05
     this.material.uniforms.uTime.value = this.time
+    this.asscroll.update()
     this.setPosition()
     this.material.uniforms.uProgress.value = this.settings.progress
     this.tl.progress(this.settings.progress)
