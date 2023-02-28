@@ -43802,16 +43802,21 @@ var MapControls = /*#__PURE__*/function (_OrbitControls) {
 }(OrbitControls);
 
 exports.MapControls = MapControls;
-},{"three":"../../../node_modules/three/build/three.module.js"}],"js/shaders/vertex.glsl":[function(require,module,exports) {
-module.exports = "#define GLSLIFY 1\nuniform float time;\nuniform float uProgress;\nuniform vec2 uResolution;\nuniform vec2 uQuadSize;\nuniform vec4 uCorners;\n\nvarying vec2 vSize;\nvarying vec2 vUv;\nvoid main() {\n  // float PI = 3.1415926;\n  vUv = uv;\n  // float sine = sin(PI * uProgress);\n  // float waves = sine * 0.1 * sin(5. * length(uv) + 15. * uProgress);\n  vec4 defaultState = modelMatrix * vec4(position, 1.0);\n  vec4 fullScreenState = vec4(position, 1.0);\n  fullScreenState.x *= uResolution.x;\n  fullScreenState.y *= uResolution.y;\n  fullScreenState.z *= uCorners.x;\n  float cornersProgress = mix(mix(uCorners.z, uCorners.w, uv.x), mix(uCorners.x, uCorners.y, uv.x), uv.y);\n\n  vec4 finalState = mix(defaultState, fullScreenState, cornersProgress);\n\n  vSize = mix(uQuadSize, uResolution, cornersProgress);\n\n  gl_Position = projectionMatrix * viewMatrix * finalState;\n}";
-},{}],"js/shaders/fragment.glsl":[function(require,module,exports) {
+},{"three":"../../../node_modules/three/build/three.module.js"}],"js/shaders/fragment.glsl":[function(require,module,exports) {
 module.exports = "#define GLSLIFY 1\nuniform float time;\nuniform float uProgress;\nuniform vec2 uTextureSize;\nuniform sampler2D uTexture;\n\nvarying vec2 vUv;\nvarying vec2 vSize;\n\nvec2 getUV(vec2 uv, vec2 textureSize, vec2 quadSize){\n    vec2 tempUV = uv - vec2(0.5);\n\n    float quadAspect = quadSize.x/quadSize.y;\n    float textureAspect = textureSize.x/textureSize.y;\n    if(quadAspect<textureAspect){\n        tempUV = tempUV*vec2(quadAspect/textureAspect,1.);\n    } else{\n        tempUV = tempUV*vec2(1.,textureAspect/quadAspect);\n    }\n\n    tempUV += vec2(0.5);\n    return tempUV;\n}\nvoid main() {\n\n    vec2 correctUV = getUV(vUv,uTextureSize,vSize);\n    vec4 image = texture2D(uTexture,correctUV);\n    // gl_FragColor = vec4( vUv,0.,1.);\n    gl_FragColor = image;\n}";
-},{}],"img/texture.jpg":[function(require,module,exports) {
-module.exports = "/texture.cb8a701a.jpg";
-},{}],"../../../node_modules/dat-gui/vendor/dat.gui.js":[function(require,module,exports) {
+},{}],"js/shaders/vertex.glsl":[function(require,module,exports) {
+module.exports = "#define GLSLIFY 1\nuniform float time;\nuniform float uProgress;\nuniform vec2 uResolution;\nuniform vec2 uQuadSize;\nuniform vec4 uCorners;\n\nvarying vec2 vSize;\nvarying vec2 vUv;\nvoid main() {\n  // float PI = 3.1415926;\n  vUv = uv;\n  // float sine = sin(PI * uProgress);\n  // float waves = sine * 0.1 * sin(5. * length(uv) + 15. * uProgress);\n  vec4 defaultState = modelMatrix * vec4(position, 1.0);\n  vec4 fullScreenState = vec4(position, 1.0);\n  fullScreenState.x *= uResolution.x;\n  fullScreenState.y *= uResolution.y;\n  fullScreenState.z *= uCorners.x;\n  float cornersProgress = mix(mix(uCorners.z, uCorners.w, uv.x), mix(uCorners.x, uCorners.y, uv.x), uv.y);\n\n  vec4 finalState = mix(defaultState, fullScreenState, cornersProgress);\n\n  vSize = mix(uQuadSize, uResolution, cornersProgress);\n\n  gl_Position = projectionMatrix * viewMatrix * finalState;\n}";
+},{}],"../../../node_modules/dat.gui/build/dat.gui.module.js":[function(require,module,exports) {
+"use strict";
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+exports.gui = exports.dom = exports.default = exports.controllers = exports.color = exports.GUI = void 0;
+
 /**
  * dat-gui JavaScript Controller Library
- * http://code.google.com/p/dat-gui
+ * https://github.com/dataarts/dat.gui
  *
  * Copyright 2011 Data Arts Team, Google Creative Lab
  *
@@ -43821,208 +43826,727 @@ module.exports = "/texture.cb8a701a.jpg";
  *
  * http://www.apache.org/licenses/LICENSE-2.0
  */
+function ___$insertStyle(css) {
+  if (!css) {
+    return;
+  }
 
-/** @namespace */
-var dat = module.exports = dat || {};
-/** @namespace */
+  if (typeof window === 'undefined') {
+    return;
+  }
 
-dat.gui = dat.gui || {};
-/** @namespace */
+  var style = document.createElement('style');
+  style.setAttribute('type', 'text/css');
+  style.innerHTML = css;
+  document.head.appendChild(style);
+  return css;
+}
 
-dat.utils = dat.utils || {};
-/** @namespace */
+function colorToString(color, forceCSSHex) {
+  var colorFormat = color.__state.conversionName.toString();
 
-dat.controllers = dat.controllers || {};
-/** @namespace */
+  var r = Math.round(color.r);
+  var g = Math.round(color.g);
+  var b = Math.round(color.b);
+  var a = color.a;
+  var h = Math.round(color.h);
+  var s = color.s.toFixed(1);
+  var v = color.v.toFixed(1);
 
-dat.dom = dat.dom || {};
-/** @namespace */
+  if (forceCSSHex || colorFormat === 'THREE_CHAR_HEX' || colorFormat === 'SIX_CHAR_HEX') {
+    var str = color.hex.toString(16);
 
-dat.color = dat.color || {};
-
-dat.utils.css = function () {
-  return {
-    load: function (url, doc) {
-      doc = doc || document;
-      var link = doc.createElement('link');
-      link.type = 'text/css';
-      link.rel = 'stylesheet';
-      link.href = url;
-      doc.getElementsByTagName('head')[0].appendChild(link);
-    },
-    inject: function (css, doc) {
-      doc = doc || document;
-      var injected = document.createElement('style');
-      injected.type = 'text/css';
-      injected.innerHTML = css;
-      doc.getElementsByTagName('head')[0].appendChild(injected);
+    while (str.length < 6) {
+      str = '0' + str;
     }
-  };
-}();
 
-dat.utils.common = function () {
-  var ARR_EACH = Array.prototype.forEach;
-  var ARR_SLICE = Array.prototype.slice;
-  /**
-   * Band-aid methods for things that should be a lot easier in JavaScript.
-   * Implementation and structure inspired by underscore.js
-   * http://documentcloud.github.com/underscore/
-   */
+    return '#' + str;
+  } else if (colorFormat === 'CSS_RGB') {
+    return 'rgb(' + r + ',' + g + ',' + b + ')';
+  } else if (colorFormat === 'CSS_RGBA') {
+    return 'rgba(' + r + ',' + g + ',' + b + ',' + a + ')';
+  } else if (colorFormat === 'HEX') {
+    return '0x' + color.hex.toString(16);
+  } else if (colorFormat === 'RGB_ARRAY') {
+    return '[' + r + ',' + g + ',' + b + ']';
+  } else if (colorFormat === 'RGBA_ARRAY') {
+    return '[' + r + ',' + g + ',' + b + ',' + a + ']';
+  } else if (colorFormat === 'RGB_OBJ') {
+    return '{r:' + r + ',g:' + g + ',b:' + b + '}';
+  } else if (colorFormat === 'RGBA_OBJ') {
+    return '{r:' + r + ',g:' + g + ',b:' + b + ',a:' + a + '}';
+  } else if (colorFormat === 'HSV_OBJ') {
+    return '{h:' + h + ',s:' + s + ',v:' + v + '}';
+  } else if (colorFormat === 'HSVA_OBJ') {
+    return '{h:' + h + ',s:' + s + ',v:' + v + ',a:' + a + '}';
+  }
 
-  return {
-    BREAK: {},
-    extend: function (target) {
-      this.each(ARR_SLICE.call(arguments, 1), function (obj) {
-        for (var key in obj) if (!this.isUndefined(obj[key])) target[key] = obj[key];
-      }, this);
-      return target;
-    },
-    defaults: function (target) {
-      this.each(ARR_SLICE.call(arguments, 1), function (obj) {
-        for (var key in obj) if (this.isUndefined(target[key])) target[key] = obj[key];
-      }, this);
-      return target;
-    },
-    compose: function () {
-      var toCall = ARR_SLICE.call(arguments);
-      return function () {
-        var args = ARR_SLICE.call(arguments);
+  return 'unknown format';
+}
 
-        for (var i = toCall.length - 1; i >= 0; i--) {
-          args = [toCall[i].apply(this, args)];
+var ARR_EACH = Array.prototype.forEach;
+var ARR_SLICE = Array.prototype.slice;
+var Common = {
+  BREAK: {},
+  extend: function extend(target) {
+    this.each(ARR_SLICE.call(arguments, 1), function (obj) {
+      var keys = this.isObject(obj) ? Object.keys(obj) : [];
+      keys.forEach(function (key) {
+        if (!this.isUndefined(obj[key])) {
+          target[key] = obj[key];
+        }
+      }.bind(this));
+    }, this);
+    return target;
+  },
+  defaults: function defaults(target) {
+    this.each(ARR_SLICE.call(arguments, 1), function (obj) {
+      var keys = this.isObject(obj) ? Object.keys(obj) : [];
+      keys.forEach(function (key) {
+        if (this.isUndefined(target[key])) {
+          target[key] = obj[key];
+        }
+      }.bind(this));
+    }, this);
+    return target;
+  },
+  compose: function compose() {
+    var toCall = ARR_SLICE.call(arguments);
+    return function () {
+      var args = ARR_SLICE.call(arguments);
+
+      for (var i = toCall.length - 1; i >= 0; i--) {
+        args = [toCall[i].apply(this, args)];
+      }
+
+      return args[0];
+    };
+  },
+  each: function each(obj, itr, scope) {
+    if (!obj) {
+      return;
+    }
+
+    if (ARR_EACH && obj.forEach && obj.forEach === ARR_EACH) {
+      obj.forEach(itr, scope);
+    } else if (obj.length === obj.length + 0) {
+      var key = void 0;
+      var l = void 0;
+
+      for (key = 0, l = obj.length; key < l; key++) {
+        if (key in obj && itr.call(scope, obj[key], key) === this.BREAK) {
+          return;
+        }
+      }
+    } else {
+      for (var _key in obj) {
+        if (itr.call(scope, obj[_key], _key) === this.BREAK) {
+          return;
+        }
+      }
+    }
+  },
+  defer: function defer(fnc) {
+    setTimeout(fnc, 0);
+  },
+  debounce: function debounce(func, threshold, callImmediately) {
+    var timeout = void 0;
+    return function () {
+      var obj = this;
+      var args = arguments;
+
+      function delayed() {
+        timeout = null;
+        if (!callImmediately) func.apply(obj, args);
+      }
+
+      var callNow = callImmediately || !timeout;
+      clearTimeout(timeout);
+      timeout = setTimeout(delayed, threshold);
+
+      if (callNow) {
+        func.apply(obj, args);
+      }
+    };
+  },
+  toArray: function toArray(obj) {
+    if (obj.toArray) return obj.toArray();
+    return ARR_SLICE.call(obj);
+  },
+  isUndefined: function isUndefined(obj) {
+    return obj === undefined;
+  },
+  isNull: function isNull(obj) {
+    return obj === null;
+  },
+  isNaN: function (_isNaN) {
+    function isNaN(_x) {
+      return _isNaN.apply(this, arguments);
+    }
+
+    isNaN.toString = function () {
+      return _isNaN.toString();
+    };
+
+    return isNaN;
+  }(function (obj) {
+    return isNaN(obj);
+  }),
+  isArray: Array.isArray || function (obj) {
+    return obj.constructor === Array;
+  },
+  isObject: function isObject(obj) {
+    return obj === Object(obj);
+  },
+  isNumber: function isNumber(obj) {
+    return obj === obj + 0;
+  },
+  isString: function isString(obj) {
+    return obj === obj + '';
+  },
+  isBoolean: function isBoolean(obj) {
+    return obj === false || obj === true;
+  },
+  isFunction: function isFunction(obj) {
+    return obj instanceof Function;
+  }
+};
+var INTERPRETATIONS = [{
+  litmus: Common.isString,
+  conversions: {
+    THREE_CHAR_HEX: {
+      read: function read(original) {
+        var test = original.match(/^#([A-F0-9])([A-F0-9])([A-F0-9])$/i);
+
+        if (test === null) {
+          return false;
         }
 
-        return args[0];
-      };
+        return {
+          space: 'HEX',
+          hex: parseInt('0x' + test[1].toString() + test[1].toString() + test[2].toString() + test[2].toString() + test[3].toString() + test[3].toString(), 0)
+        };
+      },
+      write: colorToString
     },
-    each: function (obj, itr, scope) {
-      if (ARR_EACH && obj.forEach === ARR_EACH) {
-        obj.forEach(itr, scope);
-      } else if (obj.length === obj.length + 0) {
-        // Is number but not NaN
-        for (var key = 0, l = obj.length; key < l; key++) if (key in obj && itr.call(scope, obj[key], key) === this.BREAK) return;
-      } else {
-        for (var key in obj) if (itr.call(scope, obj[key], key) === this.BREAK) return;
+    SIX_CHAR_HEX: {
+      read: function read(original) {
+        var test = original.match(/^#([A-F0-9]{6})$/i);
+
+        if (test === null) {
+          return false;
+        }
+
+        return {
+          space: 'HEX',
+          hex: parseInt('0x' + test[1].toString(), 0)
+        };
+      },
+      write: colorToString
+    },
+    CSS_RGB: {
+      read: function read(original) {
+        var test = original.match(/^rgb\(\s*(\S+)\s*,\s*(\S+)\s*,\s*(\S+)\s*\)/);
+
+        if (test === null) {
+          return false;
+        }
+
+        return {
+          space: 'RGB',
+          r: parseFloat(test[1]),
+          g: parseFloat(test[2]),
+          b: parseFloat(test[3])
+        };
+      },
+      write: colorToString
+    },
+    CSS_RGBA: {
+      read: function read(original) {
+        var test = original.match(/^rgba\(\s*(\S+)\s*,\s*(\S+)\s*,\s*(\S+)\s*,\s*(\S+)\s*\)/);
+
+        if (test === null) {
+          return false;
+        }
+
+        return {
+          space: 'RGB',
+          r: parseFloat(test[1]),
+          g: parseFloat(test[2]),
+          b: parseFloat(test[3]),
+          a: parseFloat(test[4])
+        };
+      },
+      write: colorToString
+    }
+  }
+}, {
+  litmus: Common.isNumber,
+  conversions: {
+    HEX: {
+      read: function read(original) {
+        return {
+          space: 'HEX',
+          hex: original,
+          conversionName: 'HEX'
+        };
+      },
+      write: function write(color) {
+        return color.hex;
+      }
+    }
+  }
+}, {
+  litmus: Common.isArray,
+  conversions: {
+    RGB_ARRAY: {
+      read: function read(original) {
+        if (original.length !== 3) {
+          return false;
+        }
+
+        return {
+          space: 'RGB',
+          r: original[0],
+          g: original[1],
+          b: original[2]
+        };
+      },
+      write: function write(color) {
+        return [color.r, color.g, color.b];
       }
     },
-    defer: function (fnc) {
-      setTimeout(fnc, 0);
-    },
-    toArray: function (obj) {
-      if (obj.toArray) return obj.toArray();
-      return ARR_SLICE.call(obj);
-    },
-    isUndefined: function (obj) {
-      return obj === undefined;
-    },
-    isNull: function (obj) {
-      return obj === null;
-    },
-    isNaN: function (obj) {
-      return obj !== obj;
-    },
-    isArray: Array.isArray || function (obj) {
-      return obj.constructor === Array;
-    },
-    isObject: function (obj) {
-      return obj === Object(obj);
-    },
-    isNumber: function (obj) {
-      return obj === obj + 0;
-    },
-    isString: function (obj) {
-      return obj === obj + '';
-    },
-    isBoolean: function (obj) {
-      return obj === false || obj === true;
-    },
-    isFunction: function (obj) {
-      return Object.prototype.toString.call(obj) === '[object Function]';
+    RGBA_ARRAY: {
+      read: function read(original) {
+        if (original.length !== 4) return false;
+        return {
+          space: 'RGB',
+          r: original[0],
+          g: original[1],
+          b: original[2],
+          a: original[3]
+        };
+      },
+      write: function write(color) {
+        return [color.r, color.g, color.b, color.a];
+      }
     }
+  }
+}, {
+  litmus: Common.isObject,
+  conversions: {
+    RGBA_OBJ: {
+      read: function read(original) {
+        if (Common.isNumber(original.r) && Common.isNumber(original.g) && Common.isNumber(original.b) && Common.isNumber(original.a)) {
+          return {
+            space: 'RGB',
+            r: original.r,
+            g: original.g,
+            b: original.b,
+            a: original.a
+          };
+        }
+
+        return false;
+      },
+      write: function write(color) {
+        return {
+          r: color.r,
+          g: color.g,
+          b: color.b,
+          a: color.a
+        };
+      }
+    },
+    RGB_OBJ: {
+      read: function read(original) {
+        if (Common.isNumber(original.r) && Common.isNumber(original.g) && Common.isNumber(original.b)) {
+          return {
+            space: 'RGB',
+            r: original.r,
+            g: original.g,
+            b: original.b
+          };
+        }
+
+        return false;
+      },
+      write: function write(color) {
+        return {
+          r: color.r,
+          g: color.g,
+          b: color.b
+        };
+      }
+    },
+    HSVA_OBJ: {
+      read: function read(original) {
+        if (Common.isNumber(original.h) && Common.isNumber(original.s) && Common.isNumber(original.v) && Common.isNumber(original.a)) {
+          return {
+            space: 'HSV',
+            h: original.h,
+            s: original.s,
+            v: original.v,
+            a: original.a
+          };
+        }
+
+        return false;
+      },
+      write: function write(color) {
+        return {
+          h: color.h,
+          s: color.s,
+          v: color.v,
+          a: color.a
+        };
+      }
+    },
+    HSV_OBJ: {
+      read: function read(original) {
+        if (Common.isNumber(original.h) && Common.isNumber(original.s) && Common.isNumber(original.v)) {
+          return {
+            space: 'HSV',
+            h: original.h,
+            s: original.s,
+            v: original.v
+          };
+        }
+
+        return false;
+      },
+      write: function write(color) {
+        return {
+          h: color.h,
+          s: color.s,
+          v: color.v
+        };
+      }
+    }
+  }
+}];
+var result = void 0;
+var toReturn = void 0;
+
+var interpret = function interpret() {
+  toReturn = false;
+  var original = arguments.length > 1 ? Common.toArray(arguments) : arguments[0];
+  Common.each(INTERPRETATIONS, function (family) {
+    if (family.litmus(original)) {
+      Common.each(family.conversions, function (conversion, conversionName) {
+        result = conversion.read(original);
+
+        if (toReturn === false && result !== false) {
+          toReturn = result;
+          result.conversionName = conversionName;
+          result.conversion = conversion;
+          return Common.BREAK;
+        }
+      });
+      return Common.BREAK;
+    }
+  });
+  return toReturn;
+};
+
+var tmpComponent = void 0;
+var ColorMath = {
+  hsv_to_rgb: function hsv_to_rgb(h, s, v) {
+    var hi = Math.floor(h / 60) % 6;
+    var f = h / 60 - Math.floor(h / 60);
+    var p = v * (1.0 - s);
+    var q = v * (1.0 - f * s);
+    var t = v * (1.0 - (1.0 - f) * s);
+    var c = [[v, t, p], [q, v, p], [p, v, t], [p, q, v], [t, p, v], [v, p, q]][hi];
+    return {
+      r: c[0] * 255,
+      g: c[1] * 255,
+      b: c[2] * 255
+    };
+  },
+  rgb_to_hsv: function rgb_to_hsv(r, g, b) {
+    var min = Math.min(r, g, b);
+    var max = Math.max(r, g, b);
+    var delta = max - min;
+    var h = void 0;
+    var s = void 0;
+
+    if (max !== 0) {
+      s = delta / max;
+    } else {
+      return {
+        h: NaN,
+        s: 0,
+        v: 0
+      };
+    }
+
+    if (r === max) {
+      h = (g - b) / delta;
+    } else if (g === max) {
+      h = 2 + (b - r) / delta;
+    } else {
+      h = 4 + (r - g) / delta;
+    }
+
+    h /= 6;
+
+    if (h < 0) {
+      h += 1;
+    }
+
+    return {
+      h: h * 360,
+      s: s,
+      v: max / 255
+    };
+  },
+  rgb_to_hex: function rgb_to_hex(r, g, b) {
+    var hex = this.hex_with_component(0, 2, r);
+    hex = this.hex_with_component(hex, 1, g);
+    hex = this.hex_with_component(hex, 0, b);
+    return hex;
+  },
+  component_from_hex: function component_from_hex(hex, componentIndex) {
+    return hex >> componentIndex * 8 & 0xFF;
+  },
+  hex_with_component: function hex_with_component(hex, componentIndex, value) {
+    return value << (tmpComponent = componentIndex * 8) | hex & ~(0xFF << tmpComponent);
+  }
+};
+
+var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) {
+  return typeof obj;
+} : function (obj) {
+  return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj;
+};
+
+var classCallCheck = function (instance, Constructor) {
+  if (!(instance instanceof Constructor)) {
+    throw new TypeError("Cannot call a class as a function");
+  }
+};
+
+var createClass = function () {
+  function defineProperties(target, props) {
+    for (var i = 0; i < props.length; i++) {
+      var descriptor = props[i];
+      descriptor.enumerable = descriptor.enumerable || false;
+      descriptor.configurable = true;
+      if ("value" in descriptor) descriptor.writable = true;
+      Object.defineProperty(target, descriptor.key, descriptor);
+    }
+  }
+
+  return function (Constructor, protoProps, staticProps) {
+    if (protoProps) defineProperties(Constructor.prototype, protoProps);
+    if (staticProps) defineProperties(Constructor, staticProps);
+    return Constructor;
   };
 }();
 
-dat.controllers.Controller = function (common) {
-  /**
-   * @class An "abstract" class that represents a given property of an object.
-   *
-   * @param {Object} object The object to be manipulated
-   * @param {string} property The name of the property to be manipulated
-   *
-   * @member dat.controllers
-   */
-  var Controller = function (object, property) {
+var get = function get(object, property, receiver) {
+  if (object === null) object = Function.prototype;
+  var desc = Object.getOwnPropertyDescriptor(object, property);
+
+  if (desc === undefined) {
+    var parent = Object.getPrototypeOf(object);
+
+    if (parent === null) {
+      return undefined;
+    } else {
+      return get(parent, property, receiver);
+    }
+  } else if ("value" in desc) {
+    return desc.value;
+  } else {
+    var getter = desc.get;
+
+    if (getter === undefined) {
+      return undefined;
+    }
+
+    return getter.call(receiver);
+  }
+};
+
+var inherits = function (subClass, superClass) {
+  if (typeof superClass !== "function" && superClass !== null) {
+    throw new TypeError("Super expression must either be null or a function, not " + typeof superClass);
+  }
+
+  subClass.prototype = Object.create(superClass && superClass.prototype, {
+    constructor: {
+      value: subClass,
+      enumerable: false,
+      writable: true,
+      configurable: true
+    }
+  });
+  if (superClass) Object.setPrototypeOf ? Object.setPrototypeOf(subClass, superClass) : subClass.__proto__ = superClass;
+};
+
+var possibleConstructorReturn = function (self, call) {
+  if (!self) {
+    throw new ReferenceError("this hasn't been initialised - super() hasn't been called");
+  }
+
+  return call && (typeof call === "object" || typeof call === "function") ? call : self;
+};
+
+var Color = function () {
+  function Color() {
+    classCallCheck(this, Color);
+    this.__state = interpret.apply(this, arguments);
+
+    if (this.__state === false) {
+      throw new Error('Failed to interpret color arguments');
+    }
+
+    this.__state.a = this.__state.a || 1;
+  }
+
+  createClass(Color, [{
+    key: 'toString',
+    value: function toString() {
+      return colorToString(this);
+    }
+  }, {
+    key: 'toHexString',
+    value: function toHexString() {
+      return colorToString(this, true);
+    }
+  }, {
+    key: 'toOriginal',
+    value: function toOriginal() {
+      return this.__state.conversion.write(this);
+    }
+  }]);
+  return Color;
+}();
+
+function defineRGBComponent(target, component, componentHexIndex) {
+  Object.defineProperty(target, component, {
+    get: function get$$1() {
+      if (this.__state.space === 'RGB') {
+        return this.__state[component];
+      }
+
+      Color.recalculateRGB(this, component, componentHexIndex);
+      return this.__state[component];
+    },
+    set: function set$$1(v) {
+      if (this.__state.space !== 'RGB') {
+        Color.recalculateRGB(this, component, componentHexIndex);
+        this.__state.space = 'RGB';
+      }
+
+      this.__state[component] = v;
+    }
+  });
+}
+
+function defineHSVComponent(target, component) {
+  Object.defineProperty(target, component, {
+    get: function get$$1() {
+      if (this.__state.space === 'HSV') {
+        return this.__state[component];
+      }
+
+      Color.recalculateHSV(this);
+      return this.__state[component];
+    },
+    set: function set$$1(v) {
+      if (this.__state.space !== 'HSV') {
+        Color.recalculateHSV(this);
+        this.__state.space = 'HSV';
+      }
+
+      this.__state[component] = v;
+    }
+  });
+}
+
+Color.recalculateRGB = function (color, component, componentHexIndex) {
+  if (color.__state.space === 'HEX') {
+    color.__state[component] = ColorMath.component_from_hex(color.__state.hex, componentHexIndex);
+  } else if (color.__state.space === 'HSV') {
+    Common.extend(color.__state, ColorMath.hsv_to_rgb(color.__state.h, color.__state.s, color.__state.v));
+  } else {
+    throw new Error('Corrupted color state');
+  }
+};
+
+Color.recalculateHSV = function (color) {
+  var result = ColorMath.rgb_to_hsv(color.r, color.g, color.b);
+  Common.extend(color.__state, {
+    s: result.s,
+    v: result.v
+  });
+
+  if (!Common.isNaN(result.h)) {
+    color.__state.h = result.h;
+  } else if (Common.isUndefined(color.__state.h)) {
+    color.__state.h = 0;
+  }
+};
+
+Color.COMPONENTS = ['r', 'g', 'b', 'h', 's', 'v', 'hex', 'a'];
+defineRGBComponent(Color.prototype, 'r', 2);
+defineRGBComponent(Color.prototype, 'g', 1);
+defineRGBComponent(Color.prototype, 'b', 0);
+defineHSVComponent(Color.prototype, 'h');
+defineHSVComponent(Color.prototype, 's');
+defineHSVComponent(Color.prototype, 'v');
+Object.defineProperty(Color.prototype, 'a', {
+  get: function get$$1() {
+    return this.__state.a;
+  },
+  set: function set$$1(v) {
+    this.__state.a = v;
+  }
+});
+Object.defineProperty(Color.prototype, 'hex', {
+  get: function get$$1() {
+    if (this.__state.space !== 'HEX') {
+      this.__state.hex = ColorMath.rgb_to_hex(this.r, this.g, this.b);
+      this.__state.space = 'HEX';
+    }
+
+    return this.__state.hex;
+  },
+  set: function set$$1(v) {
+    this.__state.space = 'HEX';
+    this.__state.hex = v;
+  }
+});
+
+var Controller = function () {
+  function Controller(object, property) {
+    classCallCheck(this, Controller);
     this.initialValue = object[property];
-    /**
-     * Those who extend this class will put their DOM elements in here.
-     * @type {DOMElement}
-     */
-
     this.domElement = document.createElement('div');
-    /**
-     * The object to manipulate
-     * @type {Object}
-     */
-
     this.object = object;
-    /**
-     * The name of the property to manipulate
-     * @type {String}
-     */
-
     this.property = property;
-    /**
-     * The function to be called on change.
-     * @type {Function}
-     * @ignore
-     */
-
     this.__onChange = undefined;
-    /**
-     * The function to be called on finishing change.
-     * @type {Function}
-     * @ignore
-     */
-
     this.__onFinishChange = undefined;
-  };
+  }
 
-  common.extend(Controller.prototype,
-  /** @lends dat.controllers.Controller.prototype */
-  {
-    /**
-     * Specify that a function fire every time someone changes the value with
-     * this Controller.
-     *
-     * @param {Function} fnc This function will be called whenever the value
-     * is modified via this Controller.
-     * @returns {dat.controllers.Controller} this
-     */
-    onChange: function (fnc) {
+  createClass(Controller, [{
+    key: 'onChange',
+    value: function onChange(fnc) {
       this.__onChange = fnc;
       return this;
-    },
-
-    /**
-     * Specify that a function fire every time someone "finishes" changing
-     * the value wih this Controller. Useful for values that change
-     * incrementally like numbers or strings.
-     *
-     * @param {Function} fnc This function will be called whenever
-     * someone "finishes" changing the value via this Controller.
-     * @returns {dat.controllers.Controller} this
-     */
-    onFinishChange: function (fnc) {
+    }
+  }, {
+    key: 'onFinishChange',
+    value: function onFinishChange(fnc) {
       this.__onFinishChange = fnc;
       return this;
-    },
-
-    /**
-     * Change the value of <code>object[property]</code>
-     *
-     * @param {Object} newValue The new value of <code>object[property]</code>
-     */
-    setValue: function (newValue) {
+    }
+  }, {
+    key: 'setValue',
+    value: function setValue(newValue) {
       this.object[this.property] = newValue;
 
       if (this.__onChange) {
@@ -44031,136 +44555,110 @@ dat.controllers.Controller = function (common) {
 
       this.updateDisplay();
       return this;
-    },
-
-    /**
-     * Gets the value of <code>object[property]</code>
-     *
-     * @returns {Object} The current value of <code>object[property]</code>
-     */
-    getValue: function () {
+    }
+  }, {
+    key: 'getValue',
+    value: function getValue() {
       return this.object[this.property];
-    },
-
-    /**
-     * Refreshes the visual display of a Controller in order to keep sync
-     * with the object's current value.
-     * @returns {dat.controllers.Controller} this
-     */
-    updateDisplay: function () {
+    }
+  }, {
+    key: 'updateDisplay',
+    value: function updateDisplay() {
       return this;
-    },
-
-    /**
-     * @returns {Boolean} true if the value has deviated from initialValue
-     */
-    isModified: function () {
+    }
+  }, {
+    key: 'isModified',
+    value: function isModified() {
       return this.initialValue !== this.getValue();
     }
-  });
+  }]);
   return Controller;
-}(dat.utils.common);
+}();
 
-dat.dom.dom = function (common) {
-  var EVENT_MAP = {
-    'HTMLEvents': ['change'],
-    'MouseEvents': ['click', 'mousemove', 'mousedown', 'mouseup', 'mouseover'],
-    'KeyboardEvents': ['keydown']
-  };
-  var EVENT_MAP_INV = {};
-  common.each(EVENT_MAP, function (v, k) {
-    common.each(v, function (e) {
-      EVENT_MAP_INV[e] = k;
-    });
+var EVENT_MAP = {
+  HTMLEvents: ['change'],
+  MouseEvents: ['click', 'mousemove', 'mousedown', 'mouseup', 'mouseover'],
+  KeyboardEvents: ['keydown']
+};
+var EVENT_MAP_INV = {};
+Common.each(EVENT_MAP, function (v, k) {
+  Common.each(v, function (e) {
+    EVENT_MAP_INV[e] = k;
   });
-  var CSS_VALUE_PIXELS = /(\d+(\.\d+)?)px/;
+});
+var CSS_VALUE_PIXELS = /(\d+(\.\d+)?)px/;
 
-  function cssValueToPixels(val) {
-    if (val === '0' || common.isUndefined(val)) return 0;
-    var match = val.match(CSS_VALUE_PIXELS);
-
-    if (!common.isNull(match)) {
-      return parseFloat(match[1]);
-    } // TODO ...ems? %?
-
-
+function cssValueToPixels(val) {
+  if (val === '0' || Common.isUndefined(val)) {
     return 0;
   }
-  /**
-   * @namespace
-   * @member dat.dom
-   */
 
+  var match = val.match(CSS_VALUE_PIXELS);
 
-  var dom = {
-    /**
-     * 
-     * @param elem
-     * @param selectable
-     */
-    makeSelectable: function (elem, selectable) {
-      if (elem === undefined || elem.style === undefined) return;
-      elem.onselectstart = selectable ? function () {
-        return false;
-      } : function () {};
-      elem.style.MozUserSelect = selectable ? 'auto' : 'none';
-      elem.style.KhtmlUserSelect = selectable ? 'auto' : 'none';
-      elem.unselectable = selectable ? 'on' : 'off';
-    },
+  if (!Common.isNull(match)) {
+    return parseFloat(match[1]);
+  }
 
-    /**
-     *
-     * @param elem
-     * @param horizontal
-     * @param vertical
-     */
-    makeFullscreen: function (elem, horizontal, vertical) {
-      if (common.isUndefined(horizontal)) horizontal = true;
-      if (common.isUndefined(vertical)) vertical = true;
-      elem.style.position = 'absolute';
+  return 0;
+}
 
-      if (horizontal) {
-        elem.style.left = 0;
-        elem.style.right = 0;
-      }
+var dom = {
+  makeSelectable: function makeSelectable(elem, selectable) {
+    if (elem === undefined || elem.style === undefined) return;
+    elem.onselectstart = selectable ? function () {
+      return false;
+    } : function () {};
+    elem.style.MozUserSelect = selectable ? 'auto' : 'none';
+    elem.style.KhtmlUserSelect = selectable ? 'auto' : 'none';
+    elem.unselectable = selectable ? 'on' : 'off';
+  },
+  makeFullscreen: function makeFullscreen(elem, hor, vert) {
+    var vertical = vert;
+    var horizontal = hor;
 
-      if (vertical) {
-        elem.style.top = 0;
-        elem.style.bottom = 0;
-      }
-    },
+    if (Common.isUndefined(horizontal)) {
+      horizontal = true;
+    }
 
-    /**
-     *
-     * @param elem
-     * @param eventType
-     * @param params
-     */
-    fakeEvent: function (elem, eventType, params, aux) {
-      params = params || {};
-      var className = EVENT_MAP_INV[eventType];
+    if (Common.isUndefined(vertical)) {
+      vertical = true;
+    }
 
-      if (!className) {
-        throw new Error('Event type ' + eventType + ' not supported.');
-      }
+    elem.style.position = 'absolute';
 
-      var evt = document.createEvent(className);
+    if (horizontal) {
+      elem.style.left = 0;
+      elem.style.right = 0;
+    }
 
-      switch (className) {
-        case 'MouseEvents':
+    if (vertical) {
+      elem.style.top = 0;
+      elem.style.bottom = 0;
+    }
+  },
+  fakeEvent: function fakeEvent(elem, eventType, pars, aux) {
+    var params = pars || {};
+    var className = EVENT_MAP_INV[eventType];
+
+    if (!className) {
+      throw new Error('Event type ' + eventType + ' not supported.');
+    }
+
+    var evt = document.createEvent(className);
+
+    switch (className) {
+      case 'MouseEvents':
+        {
           var clientX = params.x || params.clientX || 0;
           var clientY = params.y || params.clientY || 0;
-          evt.initMouseEvent(eventType, params.bubbles || false, params.cancelable || true, window, params.clickCount || 1, 0, //screen X
-          0, //screen Y
-          clientX, //client X
-          clientY, //client Y
-          false, false, false, false, 0, null);
+          evt.initMouseEvent(eventType, params.bubbles || false, params.cancelable || true, window, params.clickCount || 1, 0, 0, clientX, clientY, false, false, false, false, 0, null);
           break;
+        }
 
-        case 'KeyboardEvents':
-          var init = evt.initKeyboardEvent || evt.initKeyEvent; // webkit || moz
-
-          common.defaults(params, {
+      case 'KeyboardEvents':
+        {
+          var init = evt.initKeyboardEvent || evt.initKeyEvent;
+          Common.defaults(params, {
             cancelable: true,
             ctrlKey: false,
             altKey: false,
@@ -44171,587 +44669,137 @@ dat.dom.dom = function (common) {
           });
           init(eventType, params.bubbles || false, params.cancelable, window, params.ctrlKey, params.altKey, params.shiftKey, params.metaKey, params.keyCode, params.charCode);
           break;
+        }
 
-        default:
+      default:
+        {
           evt.initEvent(eventType, params.bubbles || false, params.cancelable || true);
           break;
+        }
+    }
+
+    Common.defaults(evt, aux);
+    elem.dispatchEvent(evt);
+  },
+  bind: function bind(elem, event, func, newBool) {
+    var bool = newBool || false;
+
+    if (elem.addEventListener) {
+      elem.addEventListener(event, func, bool);
+    } else if (elem.attachEvent) {
+      elem.attachEvent('on' + event, func);
+    }
+
+    return dom;
+  },
+  unbind: function unbind(elem, event, func, newBool) {
+    var bool = newBool || false;
+
+    if (elem.removeEventListener) {
+      elem.removeEventListener(event, func, bool);
+    } else if (elem.detachEvent) {
+      elem.detachEvent('on' + event, func);
+    }
+
+    return dom;
+  },
+  addClass: function addClass(elem, className) {
+    if (elem.className === undefined) {
+      elem.className = className;
+    } else if (elem.className !== className) {
+      var classes = elem.className.split(/ +/);
+
+      if (classes.indexOf(className) === -1) {
+        classes.push(className);
+        elem.className = classes.join(' ').replace(/^\s+/, '').replace(/\s+$/, '');
       }
+    }
 
-      common.defaults(evt, aux);
-      elem.dispatchEvent(evt);
-    },
-
-    /**
-     *
-     * @param elem
-     * @param event
-     * @param func
-     * @param bool
-     */
-    bind: function (elem, event, func, bool) {
-      bool = bool || false;
-      if (elem.addEventListener) elem.addEventListener(event, func, bool);else if (elem.attachEvent) elem.attachEvent('on' + event, func);
-      return dom;
-    },
-
-    /**
-     *
-     * @param elem
-     * @param event
-     * @param func
-     * @param bool
-     */
-    unbind: function (elem, event, func, bool) {
-      bool = bool || false;
-      if (elem.removeEventListener) elem.removeEventListener(event, func, bool);else if (elem.detachEvent) elem.detachEvent('on' + event, func);
-      return dom;
-    },
-
-    /**
-     *
-     * @param elem
-     * @param className
-     */
-    addClass: function (elem, className) {
-      if (elem.className === undefined) {
-        elem.className = className;
-      } else if (elem.className !== className) {
+    return dom;
+  },
+  removeClass: function removeClass(elem, className) {
+    if (className) {
+      if (elem.className === className) {
+        elem.removeAttribute('class');
+      } else {
         var classes = elem.className.split(/ +/);
+        var index = classes.indexOf(className);
 
-        if (classes.indexOf(className) == -1) {
-          classes.push(className);
-          elem.className = classes.join(' ').replace(/^\s+/, '').replace(/\s+$/, '');
+        if (index !== -1) {
+          classes.splice(index, 1);
+          elem.className = classes.join(' ');
         }
       }
-
-      return dom;
-    },
-
-    /**
-     *
-     * @param elem
-     * @param className
-     */
-    removeClass: function (elem, className) {
-      if (className) {
-        if (elem.className === undefined) {// elem.className = className;
-        } else if (elem.className === className) {
-          elem.removeAttribute('class');
-        } else {
-          var classes = elem.className.split(/ +/);
-          var index = classes.indexOf(className);
-
-          if (index != -1) {
-            classes.splice(index, 1);
-            elem.className = classes.join(' ');
-          }
-        }
-      } else {
-        elem.className = undefined;
-      }
-
-      return dom;
-    },
-    hasClass: function (elem, className) {
-      return new RegExp('(?:^|\\s+)' + className + '(?:\\s+|$)').test(elem.className) || false;
-    },
-
-    /**
-     *
-     * @param elem
-     */
-    getWidth: function (elem) {
-      var style = getComputedStyle(elem);
-      return cssValueToPixels(style['border-left-width']) + cssValueToPixels(style['border-right-width']) + cssValueToPixels(style['padding-left']) + cssValueToPixels(style['padding-right']) + cssValueToPixels(style['width']);
-    },
-
-    /**
-     *
-     * @param elem
-     */
-    getHeight: function (elem) {
-      var style = getComputedStyle(elem);
-      return cssValueToPixels(style['border-top-width']) + cssValueToPixels(style['border-bottom-width']) + cssValueToPixels(style['padding-top']) + cssValueToPixels(style['padding-bottom']) + cssValueToPixels(style['height']);
-    },
-
-    /**
-     *
-     * @param elem
-     */
-    getOffset: function (elem) {
-      var offset = {
-        left: 0,
-        top: 0
-      };
-
-      if (elem.offsetParent) {
-        do {
-          offset.left += elem.offsetLeft;
-          offset.top += elem.offsetTop;
-        } while (elem = elem.offsetParent);
-      }
-
-      return offset;
-    },
-    // http://stackoverflow.com/posts/2684561/revisions
-
-    /**
-     * 
-     * @param elem
-     */
-    isActive: function (elem) {
-      return elem === document.activeElement && (elem.type || elem.href);
-    }
-  };
-  return dom;
-}(dat.utils.common);
-
-dat.controllers.OptionController = function (Controller, dom, common) {
-  /**
-   * @class Provides a select input to alter the property of an object, using a
-   * list of accepted values.
-   *
-   * @extends dat.controllers.Controller
-   *
-   * @param {Object} object The object to be manipulated
-   * @param {string} property The name of the property to be manipulated
-   * @param {Object|string[]} options A map of labels to acceptable values, or
-   * a list of acceptable string values.
-   *
-   * @member dat.controllers
-   */
-  var OptionController = function (object, property, options) {
-    OptionController.superclass.call(this, object, property);
-
-    var _this = this;
-    /**
-     * The drop down menu
-     * @ignore
-     */
-
-
-    this.__select = document.createElement('select');
-
-    if (common.isArray(options)) {
-      var map = {};
-      common.each(options, function (element) {
-        map[element] = element;
-      });
-      options = map;
-    }
-
-    common.each(options, function (value, key) {
-      var opt = document.createElement('option');
-      opt.innerHTML = key;
-      opt.setAttribute('value', value);
-
-      _this.__select.appendChild(opt);
-    }); // Acknowledge original value
-
-    this.updateDisplay();
-    dom.bind(this.__select, 'change', function () {
-      var desiredValue = this.options[this.selectedIndex].value;
-
-      _this.setValue(desiredValue);
-    });
-    this.domElement.appendChild(this.__select);
-  };
-
-  OptionController.superclass = Controller;
-  common.extend(OptionController.prototype, Controller.prototype, {
-    setValue: function (v) {
-      var toReturn = OptionController.superclass.prototype.setValue.call(this, v);
-
-      if (this.__onFinishChange) {
-        this.__onFinishChange.call(this, this.getValue());
-      }
-
-      return toReturn;
-    },
-    updateDisplay: function () {
-      this.__select.value = this.getValue();
-      return OptionController.superclass.prototype.updateDisplay.call(this);
-    }
-  });
-  return OptionController;
-}(dat.controllers.Controller, dat.dom.dom, dat.utils.common);
-
-dat.controllers.NumberController = function (Controller, common) {
-  /**
-   * @class Represents a given property of an object that is a number.
-   *
-   * @extends dat.controllers.Controller
-   *
-   * @param {Object} object The object to be manipulated
-   * @param {string} property The name of the property to be manipulated
-   * @param {Object} [params] Optional parameters
-   * @param {Number} [params.min] Minimum allowed value
-   * @param {Number} [params.max] Maximum allowed value
-   * @param {Number} [params.step] Increment by which to change value
-   *
-   * @member dat.controllers
-   */
-  var NumberController = function (object, property, params) {
-    NumberController.superclass.call(this, object, property);
-    params = params || {};
-    this.__min = params.min;
-    this.__max = params.max;
-    this.__step = params.step;
-
-    if (common.isUndefined(this.__step)) {
-      if (this.initialValue == 0) {
-        this.__impliedStep = 1; // What are we, psychics?
-      } else {
-        // Hey Doug, check this out.
-        this.__impliedStep = Math.pow(10, Math.floor(Math.log(this.initialValue) / Math.LN10)) / 10;
-      }
     } else {
-      this.__impliedStep = this.__step;
+      elem.className = undefined;
     }
 
-    this.__precision = numDecimals(this.__impliedStep);
-  };
+    return dom;
+  },
+  hasClass: function hasClass(elem, className) {
+    return new RegExp('(?:^|\\s+)' + className + '(?:\\s+|$)').test(elem.className) || false;
+  },
+  getWidth: function getWidth(elem) {
+    var style = getComputedStyle(elem);
+    return cssValueToPixels(style['border-left-width']) + cssValueToPixels(style['border-right-width']) + cssValueToPixels(style['padding-left']) + cssValueToPixels(style['padding-right']) + cssValueToPixels(style.width);
+  },
+  getHeight: function getHeight(elem) {
+    var style = getComputedStyle(elem);
+    return cssValueToPixels(style['border-top-width']) + cssValueToPixels(style['border-bottom-width']) + cssValueToPixels(style['padding-top']) + cssValueToPixels(style['padding-bottom']) + cssValueToPixels(style.height);
+  },
+  getOffset: function getOffset(el) {
+    var elem = el;
+    var offset = {
+      left: 0,
+      top: 0
+    };
 
-  NumberController.superclass = Controller;
-  common.extend(NumberController.prototype, Controller.prototype,
-  /** @lends dat.controllers.NumberController.prototype */
-  {
-    setValue: function (v) {
-      if (this.__min !== undefined && v < this.__min) {
-        v = this.__min;
-      } else if (this.__max !== undefined && v > this.__max) {
-        v = this.__max;
-      }
-
-      if (this.__step !== undefined && v % this.__step != 0) {
-        v = Math.round(v / this.__step) * this.__step;
-      }
-
-      return NumberController.superclass.prototype.setValue.call(this, v);
-    },
-
-    /**
-     * Specify a minimum value for <code>object[property]</code>.
-     *
-     * @param {Number} minValue The minimum value for
-     * <code>object[property]</code>
-     * @returns {dat.controllers.NumberController} this
-     */
-    min: function (v) {
-      this.__min = v;
-      return this;
-    },
-
-    /**
-     * Specify a maximum value for <code>object[property]</code>.
-     *
-     * @param {Number} maxValue The maximum value for
-     * <code>object[property]</code>
-     * @returns {dat.controllers.NumberController} this
-     */
-    max: function (v) {
-      this.__max = v;
-      return this;
-    },
-
-    /**
-     * Specify a step value that dat.controllers.NumberController
-     * increments by.
-     *
-     * @param {Number} stepValue The step value for
-     * dat.controllers.NumberController
-     * @default if minimum and maximum specified increment is 1% of the
-     * difference otherwise stepValue is 1
-     * @returns {dat.controllers.NumberController} this
-     */
-    step: function (v) {
-      this.__step = v;
-      return this;
+    if (elem.offsetParent) {
+      do {
+        offset.left += elem.offsetLeft;
+        offset.top += elem.offsetTop;
+        elem = elem.offsetParent;
+      } while (elem);
     }
-  });
 
-  function numDecimals(x) {
-    x = x.toString();
-
-    if (x.indexOf('.') > -1) {
-      return x.length - x.indexOf('.') - 1;
-    } else {
-      return 0;
-    }
+    return offset;
+  },
+  isActive: function isActive(elem) {
+    return elem === document.activeElement && (elem.type || elem.href);
   }
+};
 
-  return NumberController;
-}(dat.controllers.Controller, dat.utils.common);
+var BooleanController = function (_Controller) {
+  inherits(BooleanController, _Controller);
 
-dat.controllers.NumberControllerBox = function (NumberController, dom, common) {
-  /**
-   * @class Represents a given property of an object that is a number and
-   * provides an input element with which to manipulate it.
-   *
-   * @extends dat.controllers.Controller
-   * @extends dat.controllers.NumberController
-   *
-   * @param {Object} object The object to be manipulated
-   * @param {string} property The name of the property to be manipulated
-   * @param {Object} [params] Optional parameters
-   * @param {Number} [params.min] Minimum allowed value
-   * @param {Number} [params.max] Maximum allowed value
-   * @param {Number} [params.step] Increment by which to change value
-   *
-   * @member dat.controllers
-   */
-  var NumberControllerBox = function (object, property, params) {
-    this.__truncationSuspended = false;
-    NumberControllerBox.superclass.call(this, object, property, params);
+  function BooleanController(object, property) {
+    classCallCheck(this, BooleanController);
 
-    var _this = this;
-    /**
-     * {Number} Previous mouse y position
-     * @ignore
-     */
+    var _this2 = possibleConstructorReturn(this, (BooleanController.__proto__ || Object.getPrototypeOf(BooleanController)).call(this, object, property));
 
+    var _this = _this2;
+    _this2.__prev = _this2.getValue();
+    _this2.__checkbox = document.createElement('input');
 
-    var prev_y;
-    this.__input = document.createElement('input');
-
-    this.__input.setAttribute('type', 'text'); // Makes it so manually specified values are not truncated.
-
-
-    dom.bind(this.__input, 'change', onChange);
-    dom.bind(this.__input, 'blur', onBlur);
-    dom.bind(this.__input, 'mousedown', onMouseDown);
-    dom.bind(this.__input, 'keydown', function (e) {
-      // When pressing entire, you can be as precise as you want.
-      if (e.keyCode === 13) {
-        _this.__truncationSuspended = true;
-        this.blur();
-        _this.__truncationSuspended = false;
-      }
-    });
-
-    function onChange() {
-      var attempted = parseFloat(_this.__input.value);
-      if (!common.isNaN(attempted)) _this.setValue(attempted);
-    }
-
-    function onBlur() {
-      onChange();
-
-      if (_this.__onFinishChange) {
-        _this.__onFinishChange.call(_this, _this.getValue());
-      }
-    }
-
-    function onMouseDown(e) {
-      dom.bind(window, 'mousemove', onMouseDrag);
-      dom.bind(window, 'mouseup', onMouseUp);
-      prev_y = e.clientY;
-    }
-
-    function onMouseDrag(e) {
-      var diff = prev_y - e.clientY;
-
-      _this.setValue(_this.getValue() + diff * _this.__impliedStep);
-
-      prev_y = e.clientY;
-    }
-
-    function onMouseUp() {
-      dom.unbind(window, 'mousemove', onMouseDrag);
-      dom.unbind(window, 'mouseup', onMouseUp);
-    }
-
-    this.updateDisplay();
-    this.domElement.appendChild(this.__input);
-  };
-
-  NumberControllerBox.superclass = NumberController;
-  common.extend(NumberControllerBox.prototype, NumberController.prototype, {
-    updateDisplay: function () {
-      this.__input.value = this.__truncationSuspended ? this.getValue() : roundToDecimal(this.getValue(), this.__precision);
-      return NumberControllerBox.superclass.prototype.updateDisplay.call(this);
-    }
-  });
-
-  function roundToDecimal(value, decimals) {
-    var tenTo = Math.pow(10, decimals);
-    return Math.round(value * tenTo) / tenTo;
-  }
-
-  return NumberControllerBox;
-}(dat.controllers.NumberController, dat.dom.dom, dat.utils.common);
-
-dat.controllers.NumberControllerSlider = function (NumberController, dom, css, common, styleSheet) {
-  /**
-   * @class Represents a given property of an object that is a number, contains
-   * a minimum and maximum, and provides a slider element with which to
-   * manipulate it. It should be noted that the slider element is made up of
-   * <code>&lt;div&gt;</code> tags, <strong>not</strong> the html5
-   * <code>&lt;slider&gt;</code> element.
-   *
-   * @extends dat.controllers.Controller
-   * @extends dat.controllers.NumberController
-   * 
-   * @param {Object} object The object to be manipulated
-   * @param {string} property The name of the property to be manipulated
-   * @param {Number} minValue Minimum allowed value
-   * @param {Number} maxValue Maximum allowed value
-   * @param {Number} stepValue Increment by which to change value
-   *
-   * @member dat.controllers
-   */
-  var NumberControllerSlider = function (object, property, min, max, step) {
-    NumberControllerSlider.superclass.call(this, object, property, {
-      min: min,
-      max: max,
-      step: step
-    });
-
-    var _this = this;
-
-    this.__background = document.createElement('div');
-    this.__foreground = document.createElement('div');
-    dom.bind(this.__background, 'mousedown', onMouseDown);
-    dom.addClass(this.__background, 'slider');
-    dom.addClass(this.__foreground, 'slider-fg');
-
-    function onMouseDown(e) {
-      dom.bind(window, 'mousemove', onMouseDrag);
-      dom.bind(window, 'mouseup', onMouseUp);
-      onMouseDrag(e);
-    }
-
-    function onMouseDrag(e) {
-      e.preventDefault();
-      var offset = dom.getOffset(_this.__background);
-      var width = dom.getWidth(_this.__background);
-
-      _this.setValue(map(e.clientX, offset.left, offset.left + width, _this.__min, _this.__max));
-
-      return false;
-    }
-
-    function onMouseUp() {
-      dom.unbind(window, 'mousemove', onMouseDrag);
-      dom.unbind(window, 'mouseup', onMouseUp);
-
-      if (_this.__onFinishChange) {
-        _this.__onFinishChange.call(_this, _this.getValue());
-      }
-    }
-
-    this.updateDisplay();
-
-    this.__background.appendChild(this.__foreground);
-
-    this.domElement.appendChild(this.__background);
-  };
-
-  NumberControllerSlider.superclass = NumberController;
-  /**
-   * Injects default stylesheet for slider elements.
-   */
-
-  NumberControllerSlider.useDefaultStyles = function () {
-    css.inject(styleSheet);
-  };
-
-  common.extend(NumberControllerSlider.prototype, NumberController.prototype, {
-    updateDisplay: function () {
-      var pct = (this.getValue() - this.__min) / (this.__max - this.__min);
-
-      this.__foreground.style.width = pct * 100 + '%';
-      return NumberControllerSlider.superclass.prototype.updateDisplay.call(this);
-    }
-  });
-
-  function map(v, i1, i2, o1, o2) {
-    return o1 + (o2 - o1) * ((v - i1) / (i2 - i1));
-  }
-
-  return NumberControllerSlider;
-}(dat.controllers.NumberController, dat.dom.dom, dat.utils.css, dat.utils.common, ".slider {\n  box-shadow: inset 0 2px 4px rgba(0,0,0,0.15);\n  height: 1em;\n  border-radius: 1em;\n  background-color: #eee;\n  padding: 0 0.5em;\n  overflow: hidden;\n}\n\n.slider-fg {\n  padding: 1px 0 2px 0;\n  background-color: #aaa;\n  height: 1em;\n  margin-left: -0.5em;\n  padding-right: 0.5em;\n  border-radius: 1em 0 0 1em;\n}\n\n.slider-fg:after {\n  display: inline-block;\n  border-radius: 1em;\n  background-color: #fff;\n  border:  1px solid #aaa;\n  content: '';\n  float: right;\n  margin-right: -1em;\n  margin-top: -1px;\n  height: 0.9em;\n  width: 0.9em;\n}");
-
-dat.controllers.FunctionController = function (Controller, dom, common) {
-  /**
-   * @class Provides a GUI interface to fire a specified method, a property of an object.
-   *
-   * @extends dat.controllers.Controller
-   *
-   * @param {Object} object The object to be manipulated
-   * @param {string} property The name of the property to be manipulated
-   *
-   * @member dat.controllers
-   */
-  var FunctionController = function (object, property, text) {
-    FunctionController.superclass.call(this, object, property);
-
-    var _this = this;
-
-    this.__button = document.createElement('div');
-    this.__button.innerHTML = text === undefined ? 'Fire' : text;
-    dom.bind(this.__button, 'click', function (e) {
-      e.preventDefault();
-
-      _this.fire();
-
-      return false;
-    });
-    dom.addClass(this.__button, 'button');
-    this.domElement.appendChild(this.__button);
-  };
-
-  FunctionController.superclass = Controller;
-  common.extend(FunctionController.prototype, Controller.prototype, {
-    fire: function () {
-      if (this.__onChange) {
-        this.__onChange.call(this);
-      }
-
-      if (this.__onFinishChange) {
-        this.__onFinishChange.call(this, this.getValue());
-      }
-
-      this.getValue().call(this.object);
-    }
-  });
-  return FunctionController;
-}(dat.controllers.Controller, dat.dom.dom, dat.utils.common);
-
-dat.controllers.BooleanController = function (Controller, dom, common) {
-  /**
-   * @class Provides a checkbox input to alter the boolean property of an object.
-   * @extends dat.controllers.Controller
-   *
-   * @param {Object} object The object to be manipulated
-   * @param {string} property The name of the property to be manipulated
-   *
-   * @member dat.controllers
-   */
-  var BooleanController = function (object, property) {
-    BooleanController.superclass.call(this, object, property);
-
-    var _this = this;
-
-    this.__prev = this.getValue();
-    this.__checkbox = document.createElement('input');
-
-    this.__checkbox.setAttribute('type', 'checkbox');
-
-    dom.bind(this.__checkbox, 'change', onChange, false);
-    this.domElement.appendChild(this.__checkbox); // Match original value
-
-    this.updateDisplay();
+    _this2.__checkbox.setAttribute('type', 'checkbox');
 
     function onChange() {
       _this.setValue(!_this.__prev);
     }
-  };
 
-  BooleanController.superclass = Controller;
-  common.extend(BooleanController.prototype, Controller.prototype, {
-    setValue: function (v) {
-      var toReturn = BooleanController.superclass.prototype.setValue.call(this, v);
+    dom.bind(_this2.__checkbox, 'change', onChange, false);
+
+    _this2.domElement.appendChild(_this2.__checkbox);
+
+    _this2.updateDisplay();
+
+    return _this2;
+  }
+
+  createClass(BooleanController, [{
+    key: 'setValue',
+    value: function setValue(v) {
+      var toReturn = get(BooleanController.prototype.__proto__ || Object.getPrototypeOf(BooleanController.prototype), 'setValue', this).call(this, v);
 
       if (this.__onFinishChange) {
         this.__onFinishChange.call(this, this.getValue());
@@ -44759,1400 +44807,98 @@ dat.controllers.BooleanController = function (Controller, dom, common) {
 
       this.__prev = this.getValue();
       return toReturn;
-    },
-    updateDisplay: function () {
+    }
+  }, {
+    key: 'updateDisplay',
+    value: function updateDisplay() {
       if (this.getValue() === true) {
         this.__checkbox.setAttribute('checked', 'checked');
 
         this.__checkbox.checked = true;
+        this.__prev = true;
       } else {
         this.__checkbox.checked = false;
+        this.__prev = false;
       }
 
-      return BooleanController.superclass.prototype.updateDisplay.call(this);
+      return get(BooleanController.prototype.__proto__ || Object.getPrototypeOf(BooleanController.prototype), 'updateDisplay', this).call(this);
     }
-  });
+  }]);
   return BooleanController;
-}(dat.controllers.Controller, dat.dom.dom, dat.utils.common);
+}(Controller);
 
-dat.color.toString = function (common) {
-  return function (color) {
-    if (color.a == 1 || common.isUndefined(color.a)) {
-      var s = color.hex.toString(16);
+var OptionController = function (_Controller) {
+  inherits(OptionController, _Controller);
 
-      while (s.length < 6) {
-        s = '0' + s;
-      }
+  function OptionController(object, property, opts) {
+    classCallCheck(this, OptionController);
 
-      return '#' + s;
-    } else {
-      return 'rgba(' + Math.round(color.r) + ',' + Math.round(color.g) + ',' + Math.round(color.b) + ',' + color.a + ')';
-    }
-  };
-}(dat.utils.common);
+    var _this2 = possibleConstructorReturn(this, (OptionController.__proto__ || Object.getPrototypeOf(OptionController)).call(this, object, property));
 
-dat.color.interpret = function (toString, common) {
-  var result, toReturn;
+    var options = opts;
+    var _this = _this2;
+    _this2.__select = document.createElement('select');
 
-  var interpret = function () {
-    toReturn = false;
-    var original = arguments.length > 1 ? common.toArray(arguments) : arguments[0];
-    common.each(INTERPRETATIONS, function (family) {
-      if (family.litmus(original)) {
-        common.each(family.conversions, function (conversion, conversionName) {
-          result = conversion.read(original);
-
-          if (toReturn === false && result !== false) {
-            toReturn = result;
-            result.conversionName = conversionName;
-            result.conversion = conversion;
-            return common.BREAK;
-          }
-        });
-        return common.BREAK;
-      }
-    });
-    return toReturn;
-  };
-
-  var INTERPRETATIONS = [// Strings
-  {
-    litmus: common.isString,
-    conversions: {
-      THREE_CHAR_HEX: {
-        read: function (original) {
-          var test = original.match(/^#([A-F0-9])([A-F0-9])([A-F0-9])$/i);
-          if (test === null) return false;
-          return {
-            space: 'HEX',
-            hex: parseInt('0x' + test[1].toString() + test[1].toString() + test[2].toString() + test[2].toString() + test[3].toString() + test[3].toString())
-          };
-        },
-        write: toString
-      },
-      SIX_CHAR_HEX: {
-        read: function (original) {
-          var test = original.match(/^#([A-F0-9]{6})$/i);
-          if (test === null) return false;
-          return {
-            space: 'HEX',
-            hex: parseInt('0x' + test[1].toString())
-          };
-        },
-        write: toString
-      },
-      CSS_RGB: {
-        read: function (original) {
-          var test = original.match(/^rgb\(\s*(.+)\s*,\s*(.+)\s*,\s*(.+)\s*\)/);
-          if (test === null) return false;
-          return {
-            space: 'RGB',
-            r: parseFloat(test[1]),
-            g: parseFloat(test[2]),
-            b: parseFloat(test[3])
-          };
-        },
-        write: toString
-      },
-      CSS_RGBA: {
-        read: function (original) {
-          var test = original.match(/^rgba\(\s*(.+)\s*,\s*(.+)\s*,\s*(.+)\s*\,\s*(.+)\s*\)/);
-          if (test === null) return false;
-          return {
-            space: 'RGB',
-            r: parseFloat(test[1]),
-            g: parseFloat(test[2]),
-            b: parseFloat(test[3]),
-            a: parseFloat(test[4])
-          };
-        },
-        write: toString
-      }
-    }
-  }, // Numbers
-  {
-    litmus: common.isNumber,
-    conversions: {
-      HEX: {
-        read: function (original) {
-          return {
-            space: 'HEX',
-            hex: original,
-            conversionName: 'HEX'
-          };
-        },
-        write: function (color) {
-          return color.hex;
-        }
-      }
-    }
-  }, // Arrays
-  {
-    litmus: common.isArray,
-    conversions: {
-      RGB_ARRAY: {
-        read: function (original) {
-          if (original.length != 3) return false;
-          return {
-            space: 'RGB',
-            r: original[0],
-            g: original[1],
-            b: original[2]
-          };
-        },
-        write: function (color) {
-          return [color.r, color.g, color.b];
-        }
-      },
-      RGBA_ARRAY: {
-        read: function (original) {
-          if (original.length != 4) return false;
-          return {
-            space: 'RGB',
-            r: original[0],
-            g: original[1],
-            b: original[2],
-            a: original[3]
-          };
-        },
-        write: function (color) {
-          return [color.r, color.g, color.b, color.a];
-        }
-      }
-    }
-  }, // Objects
-  {
-    litmus: common.isObject,
-    conversions: {
-      RGBA_OBJ: {
-        read: function (original) {
-          if (common.isNumber(original.r) && common.isNumber(original.g) && common.isNumber(original.b) && common.isNumber(original.a)) {
-            return {
-              space: 'RGB',
-              r: original.r,
-              g: original.g,
-              b: original.b,
-              a: original.a
-            };
-          }
-
-          return false;
-        },
-        write: function (color) {
-          return {
-            r: color.r,
-            g: color.g,
-            b: color.b,
-            a: color.a
-          };
-        }
-      },
-      RGB_OBJ: {
-        read: function (original) {
-          if (common.isNumber(original.r) && common.isNumber(original.g) && common.isNumber(original.b)) {
-            return {
-              space: 'RGB',
-              r: original.r,
-              g: original.g,
-              b: original.b
-            };
-          }
-
-          return false;
-        },
-        write: function (color) {
-          return {
-            r: color.r,
-            g: color.g,
-            b: color.b
-          };
-        }
-      },
-      HSVA_OBJ: {
-        read: function (original) {
-          if (common.isNumber(original.h) && common.isNumber(original.s) && common.isNumber(original.v) && common.isNumber(original.a)) {
-            return {
-              space: 'HSV',
-              h: original.h,
-              s: original.s,
-              v: original.v,
-              a: original.a
-            };
-          }
-
-          return false;
-        },
-        write: function (color) {
-          return {
-            h: color.h,
-            s: color.s,
-            v: color.v,
-            a: color.a
-          };
-        }
-      },
-      HSV_OBJ: {
-        read: function (original) {
-          if (common.isNumber(original.h) && common.isNumber(original.s) && common.isNumber(original.v)) {
-            return {
-              space: 'HSV',
-              h: original.h,
-              s: original.s,
-              v: original.v
-            };
-          }
-
-          return false;
-        },
-        write: function (color) {
-          return {
-            h: color.h,
-            s: color.s,
-            v: color.v
-          };
-        }
-      }
-    }
-  }];
-  return interpret;
-}(dat.color.toString, dat.utils.common);
-
-dat.GUI = dat.gui.GUI = function (css, saveDialogueContents, styleSheet, controllerFactory, Controller, BooleanController, FunctionController, NumberControllerBox, NumberControllerSlider, OptionController, ColorController, requestAnimationFrame, CenteredDiv, dom, common) {
-  css.inject(styleSheet);
-  /** Outer-most className for GUI's */
-
-  var CSS_NAMESPACE = 'dg';
-  var HIDE_KEY_CODE = 72;
-  /** The only value shared between the JS and SCSS. Use caution. */
-
-  var CLOSE_BUTTON_HEIGHT = 20;
-  var DEFAULT_DEFAULT_PRESET_NAME = 'Default';
-
-  var SUPPORTS_LOCAL_STORAGE = function () {
-    try {
-      return 'localStorage' in window && window['localStorage'] !== null;
-    } catch (e) {
-      return false;
-    }
-  }();
-
-  var SAVE_DIALOGUE;
-  /** Have we yet to create an autoPlace GUI? */
-
-  var auto_place_virgin = true;
-  /** Fixed position div that auto place GUI's go inside */
-
-  var auto_place_container;
-  /** Are we hiding the GUI's ? */
-
-  var hide = false;
-  /** GUI's which should be hidden */
-
-  var hideable_guis = [];
-  /**
-   * A lightweight controller library for JavaScript. It allows you to easily
-   * manipulate variables and fire functions on the fly.
-   * @class
-   *
-   * @member dat.gui
-   *
-   * @param {Object} [params]
-   * @param {String} [params.name] The name of this GUI.
-   * @param {Object} [params.load] JSON object representing the saved state of
-   * this GUI.
-   * @param {Boolean} [params.auto=true]
-   * @param {dat.gui.GUI} [params.parent] The GUI I'm nested in.
-   * @param {Boolean} [params.closed] If true, starts closed
-   */
-
-  var GUI = function (params) {
-    var _this = this;
-    /**
-     * Outermost DOM Element
-     * @type DOMElement
-     */
-
-
-    this.domElement = document.createElement('div');
-    this.__ul = document.createElement('ul');
-    this.domElement.appendChild(this.__ul);
-    dom.addClass(this.domElement, CSS_NAMESPACE);
-    /**
-     * Nested GUI's by name
-     * @ignore
-     */
-
-    this.__folders = {};
-    this.__controllers = [];
-    /**
-     * List of objects I'm remembering for save, only used in top level GUI
-     * @ignore
-     */
-
-    this.__rememberedObjects = [];
-    /**
-     * Maps the index of remembered objects to a map of controllers, only used
-     * in top level GUI.
-     *
-     * @private
-     * @ignore
-     *
-     * @example
-     * [
-     *  {
-     *    propertyName: Controller,
-     *    anotherPropertyName: Controller
-     *  },
-     *  {
-     *    propertyName: Controller
-     *  }
-     * ]
-     */
-
-    this.__rememberedObjectIndecesToControllers = [];
-    this.__listening = [];
-    params = params || {}; // Default parameters
-
-    params = common.defaults(params, {
-      autoPlace: true,
-      width: GUI.DEFAULT_WIDTH
-    });
-    params = common.defaults(params, {
-      resizable: params.autoPlace,
-      hideable: params.autoPlace
-    });
-
-    if (!common.isUndefined(params.load)) {
-      // Explicit preset
-      if (params.preset) params.load.preset = params.preset;
-    } else {
-      params.load = {
-        preset: DEFAULT_DEFAULT_PRESET_NAME
-      };
-    }
-
-    if (common.isUndefined(params.parent) && params.hideable) {
-      hideable_guis.push(this);
-    } // Only root level GUI's are resizable.
-
-
-    params.resizable = common.isUndefined(params.parent) && params.resizable;
-
-    if (params.autoPlace && common.isUndefined(params.scrollable)) {
-      params.scrollable = true;
-    } //    params.scrollable = common.isUndefined(params.parent) && params.scrollable === true;
-    // Not part of params because I don't want people passing this in via
-    // constructor. Should be a 'remembered' value.
-
-
-    var use_local_storage = SUPPORTS_LOCAL_STORAGE && localStorage.getItem(getLocalStorageHash(this, 'isLocal')) === 'true';
-    Object.defineProperties(this,
-    /** @lends dat.gui.GUI.prototype */
-    {
-      /**
-       * The parent <code>GUI</code>
-       * @type dat.gui.GUI
-       */
-      parent: {
-        get: function () {
-          return params.parent;
-        }
-      },
-      scrollable: {
-        get: function () {
-          return params.scrollable;
-        }
-      },
-
-      /**
-       * Handles <code>GUI</code>'s element placement for you
-       * @type Boolean
-       */
-      autoPlace: {
-        get: function () {
-          return params.autoPlace;
-        }
-      },
-
-      /**
-       * The identifier for a set of saved values
-       * @type String
-       */
-      preset: {
-        get: function () {
-          if (_this.parent) {
-            return _this.getRoot().preset;
-          } else {
-            return params.load.preset;
-          }
-        },
-        set: function (v) {
-          if (_this.parent) {
-            _this.getRoot().preset = v;
-          } else {
-            params.load.preset = v;
-          }
-
-          setPresetSelectIndex(this);
-
-          _this.revert();
-        }
-      },
-
-      /**
-       * The width of <code>GUI</code> element
-       * @type Number
-       */
-      width: {
-        get: function () {
-          return params.width;
-        },
-        set: function (v) {
-          params.width = v;
-          setWidth(_this, v);
-        }
-      },
-
-      /**
-       * The name of <code>GUI</code>. Used for folders. i.e
-       * a folder's name
-       * @type String
-       */
-      name: {
-        get: function () {
-          return params.name;
-        },
-        set: function (v) {
-          // TODO Check for collisions among sibling folders
-          params.name = v;
-
-          if (title_row_name) {
-            title_row_name.innerHTML = params.name;
-          }
-        }
-      },
-
-      /**
-       * Whether the <code>GUI</code> is collapsed or not
-       * @type Boolean
-       */
-      closed: {
-        get: function () {
-          return params.closed;
-        },
-        set: function (v) {
-          params.closed = v;
-
-          if (params.closed) {
-            dom.addClass(_this.__ul, GUI.CLASS_CLOSED);
-          } else {
-            dom.removeClass(_this.__ul, GUI.CLASS_CLOSED);
-          } // For browsers that aren't going to respect the CSS transition,
-          // Lets just check our height against the window height right off
-          // the bat.
-
-
-          this.onResize();
-
-          if (_this.__closeButton) {
-            _this.__closeButton.innerHTML = v ? GUI.TEXT_OPEN : GUI.TEXT_CLOSED;
-          }
-        }
-      },
-
-      /**
-       * Contains all presets
-       * @type Object
-       */
-      load: {
-        get: function () {
-          return params.load;
-        }
-      },
-
-      /**
-       * Determines whether or not to use <a href="https://developer.mozilla.org/en/DOM/Storage#localStorage">localStorage</a> as the means for
-       * <code>remember</code>ing
-       * @type Boolean
-       */
-      useLocalStorage: {
-        get: function () {
-          return use_local_storage;
-        },
-        set: function (bool) {
-          if (SUPPORTS_LOCAL_STORAGE) {
-            use_local_storage = bool;
-
-            if (bool) {
-              dom.bind(window, 'unload', saveToLocalStorage);
-            } else {
-              dom.unbind(window, 'unload', saveToLocalStorage);
-            }
-
-            localStorage.setItem(getLocalStorageHash(_this, 'isLocal'), bool);
-          }
-        }
-      }
-    }); // Are we a root level GUI?
-
-    if (common.isUndefined(params.parent)) {
-      params.closed = false;
-      dom.addClass(this.domElement, GUI.CLASS_MAIN);
-      dom.makeSelectable(this.domElement, false); // Are we supposed to be loading locally?
-
-      if (SUPPORTS_LOCAL_STORAGE) {
-        if (use_local_storage) {
-          _this.useLocalStorage = true;
-          var saved_gui = localStorage.getItem(getLocalStorageHash(this, 'gui'));
-
-          if (saved_gui) {
-            params.load = JSON.parse(saved_gui);
-          }
-        }
-      }
-
-      this.__closeButton = document.createElement('div');
-      this.__closeButton.innerHTML = GUI.TEXT_CLOSED;
-      dom.addClass(this.__closeButton, GUI.CLASS_CLOSE_BUTTON);
-      this.domElement.appendChild(this.__closeButton);
-      dom.bind(this.__closeButton, 'click', function () {
-        _this.closed = !_this.closed;
-      }); // Oh, you're a nested GUI!
-    } else {
-      if (params.closed === undefined) {
-        params.closed = true;
-      }
-
-      var title_row_name = document.createTextNode(params.name);
-      dom.addClass(title_row_name, 'controller-name');
-      var title_row = addRow(_this, title_row_name);
-
-      var on_click_title = function (e) {
-        e.preventDefault();
-        _this.closed = !_this.closed;
-        return false;
-      };
-
-      dom.addClass(this.__ul, GUI.CLASS_CLOSED);
-      dom.addClass(title_row, 'title');
-      dom.bind(title_row, 'click', on_click_title);
-
-      if (!params.closed) {
-        this.closed = false;
-      }
-    }
-
-    if (params.autoPlace) {
-      if (common.isUndefined(params.parent)) {
-        if (auto_place_virgin) {
-          auto_place_container = document.createElement('div');
-          dom.addClass(auto_place_container, CSS_NAMESPACE);
-          dom.addClass(auto_place_container, GUI.CLASS_AUTO_PLACE_CONTAINER);
-          document.body.appendChild(auto_place_container);
-          auto_place_virgin = false;
-        } // Put it in the dom for you.
-
-
-        auto_place_container.appendChild(this.domElement); // Apply the auto styles
-
-        dom.addClass(this.domElement, GUI.CLASS_AUTO_PLACE);
-      } // Make it not elastic.
-
-
-      if (!this.parent) setWidth(_this, params.width);
-    }
-
-    dom.bind(window, 'resize', function () {
-      _this.onResize();
-    });
-    dom.bind(this.__ul, 'webkitTransitionEnd', function () {
-      _this.onResize();
-    });
-    dom.bind(this.__ul, 'transitionend', function () {
-      _this.onResize();
-    });
-    dom.bind(this.__ul, 'oTransitionEnd', function () {
-      _this.onResize();
-    });
-    this.onResize();
-
-    if (params.resizable) {
-      addResizeHandle(this);
-    }
-
-    function saveToLocalStorage() {
-      localStorage.setItem(getLocalStorageHash(_this, 'gui'), JSON.stringify(_this.getSaveObject()));
-    }
-
-    var root = _this.getRoot();
-
-    function resetWidth() {
-      var root = _this.getRoot();
-
-      root.width += 1;
-      common.defer(function () {
-        root.width -= 1;
+    if (Common.isArray(options)) {
+      var map = {};
+      Common.each(options, function (element) {
+        map[element] = element;
       });
+      options = map;
     }
 
-    if (!params.parent) {
-      resetWidth();
-    }
-  };
+    Common.each(options, function (value, key) {
+      var opt = document.createElement('option');
+      opt.innerHTML = key;
+      opt.setAttribute('value', value);
 
-  GUI.toggleHide = function () {
-    hide = !hide;
-    common.each(hideable_guis, function (gui) {
-      gui.domElement.style.zIndex = hide ? -999 : 999;
-      gui.domElement.style.opacity = hide ? 0 : 1;
+      _this.__select.appendChild(opt);
     });
-  };
 
-  GUI.CLASS_AUTO_PLACE = 'a';
-  GUI.CLASS_AUTO_PLACE_CONTAINER = 'ac';
-  GUI.CLASS_MAIN = 'main';
-  GUI.CLASS_CONTROLLER_ROW = 'cr';
-  GUI.CLASS_TOO_TALL = 'taller-than-window';
-  GUI.CLASS_CLOSED = 'closed';
-  GUI.CLASS_CLOSE_BUTTON = 'close-button';
-  GUI.CLASS_DRAG = 'drag';
-  GUI.DEFAULT_WIDTH = 245;
-  GUI.TEXT_CLOSED = 'Close Controls';
-  GUI.TEXT_OPEN = 'Open Controls';
-  dom.bind(window, 'keydown', function (e) {
-    if (document.activeElement.type !== 'text' && (e.which === HIDE_KEY_CODE || e.keyCode == HIDE_KEY_CODE)) {
-      GUI.toggleHide();
-    }
-  }, false);
-  common.extend(GUI.prototype,
-  /** @lends dat.gui.GUI */
-  {
-    /**
-     * @param object
-     * @param property
-     * @returns {dat.controllers.Controller} The new controller that was added.
-     * @instance
-     */
-    add: function (object, property) {
-      return add(this, object, property, {
-        factoryArgs: Array.prototype.slice.call(arguments, 2)
-      });
-    },
+    _this2.updateDisplay();
 
-    /**
-     * @param object
-     * @param property
-     * @returns {dat.controllers.ColorController} The new controller that was added.
-     * @instance
-     */
-    addColor: function (object, property) {
-      return add(this, object, property, {
-        color: true
-      });
-    },
+    dom.bind(_this2.__select, 'change', function () {
+      var desiredValue = this.options[this.selectedIndex].value;
 
-    /**
-     * @param controller
-     * @instance
-     */
-    remove: function (controller) {
-      // TODO listening?
-      this.__ul.removeChild(controller.__li);
+      _this.setValue(desiredValue);
+    });
 
-      this.__controllers.slice(this.__controllers.indexOf(controller), 1);
+    _this2.domElement.appendChild(_this2.__select);
 
-      var _this = this;
+    return _this2;
+  }
 
-      common.defer(function () {
-        _this.onResize();
-      });
-    },
-    destroy: function () {
-      if (this.autoPlace) {
-        auto_place_container.removeChild(this.domElement);
-      }
-    },
+  createClass(OptionController, [{
+    key: 'setValue',
+    value: function setValue(v) {
+      var toReturn = get(OptionController.prototype.__proto__ || Object.getPrototypeOf(OptionController.prototype), 'setValue', this).call(this, v);
 
-    /**
-     * @param name
-     * @returns {dat.gui.GUI} The new folder.
-     * @throws {Error} if this GUI already has a folder by the specified
-     * name
-     * @instance
-     */
-    addFolder: function (name) {
-      // We have to prevent collisions on names in order to have a key
-      // by which to remember saved values
-      if (this.__folders[name] !== undefined) {
-        throw new Error('You already have a folder in this GUI by the' + ' name "' + name + '"');
+      if (this.__onFinishChange) {
+        this.__onFinishChange.call(this, this.getValue());
       }
 
-      var new_gui_params = {
-        name: name,
-        parent: this
-      }; // We need to pass down the autoPlace trait so that we can
-      // attach event listeners to open/close folder actions to
-      // ensure that a scrollbar appears if the window is too short.
-
-      new_gui_params.autoPlace = this.autoPlace; // Do we have saved appearance data for this folder?
-
-      if (this.load && // Anything loaded?
-      this.load.folders && // Was my parent a dead-end?
-      this.load.folders[name]) {
-        // Did daddy remember me?
-        // Start me closed if I was closed
-        new_gui_params.closed = this.load.folders[name].closed; // Pass down the loaded data
-
-        new_gui_params.load = this.load.folders[name];
-      }
-
-      var gui = new GUI(new_gui_params);
-      this.__folders[name] = gui;
-      var li = addRow(this, gui.domElement);
-      dom.addClass(li, 'folder');
-      return gui;
-    },
-    open: function () {
-      this.closed = false;
-    },
-    close: function () {
-      this.closed = true;
-    },
-    onResize: function () {
-      var root = this.getRoot();
-
-      if (root.scrollable) {
-        var top = dom.getOffset(root.__ul).top;
-        var h = 0;
-        common.each(root.__ul.childNodes, function (node) {
-          if (!(root.autoPlace && node === root.__save_row)) h += dom.getHeight(node);
-        });
-
-        if (window.innerHeight - top - CLOSE_BUTTON_HEIGHT < h) {
-          dom.addClass(root.domElement, GUI.CLASS_TOO_TALL);
-          root.__ul.style.height = window.innerHeight - top - CLOSE_BUTTON_HEIGHT + 'px';
-        } else {
-          dom.removeClass(root.domElement, GUI.CLASS_TOO_TALL);
-          root.__ul.style.height = 'auto';
-        }
-      }
-
-      if (root.__resize_handle) {
-        common.defer(function () {
-          root.__resize_handle.style.height = root.__ul.offsetHeight + 'px';
-        });
-      }
-
-      if (root.__closeButton) {
-        root.__closeButton.style.width = root.width + 'px';
-      }
-    },
-
-    /**
-     * Mark objects for saving. The order of these objects cannot change as
-     * the GUI grows. When remembering new objects, append them to the end
-     * of the list.
-     *
-     * @param {Object...} objects
-     * @throws {Error} if not called on a top level GUI.
-     * @instance
-     */
-    remember: function () {
-      if (common.isUndefined(SAVE_DIALOGUE)) {
-        SAVE_DIALOGUE = new CenteredDiv();
-        SAVE_DIALOGUE.domElement.innerHTML = saveDialogueContents;
-      }
-
-      if (this.parent) {
-        throw new Error("You can only call remember on a top level GUI.");
-      }
-
-      var _this = this;
-
-      common.each(Array.prototype.slice.call(arguments), function (object) {
-        if (_this.__rememberedObjects.length == 0) {
-          addSaveMenu(_this);
-        }
-
-        if (_this.__rememberedObjects.indexOf(object) == -1) {
-          _this.__rememberedObjects.push(object);
-        }
-      });
-
-      if (this.autoPlace) {
-        // Set save row width
-        setWidth(this, this.width);
-      }
-    },
-
-    /**
-     * @returns {dat.gui.GUI} the topmost parent GUI of a nested GUI.
-     * @instance
-     */
-    getRoot: function () {
-      var gui = this;
-
-      while (gui.parent) {
-        gui = gui.parent;
-      }
-
-      return gui;
-    },
-
-    /**
-     * @returns {Object} a JSON object representing the current state of
-     * this GUI as well as its remembered properties.
-     * @instance
-     */
-    getSaveObject: function () {
-      var toReturn = this.load;
-      toReturn.closed = this.closed; // Am I remembering any values?
-
-      if (this.__rememberedObjects.length > 0) {
-        toReturn.preset = this.preset;
-
-        if (!toReturn.remembered) {
-          toReturn.remembered = {};
-        }
-
-        toReturn.remembered[this.preset] = getCurrentPreset(this);
-      }
-
-      toReturn.folders = {};
-      common.each(this.__folders, function (element, key) {
-        toReturn.folders[key] = element.getSaveObject();
-      });
       return toReturn;
-    },
-    save: function () {
-      if (!this.load.remembered) {
-        this.load.remembered = {};
-      }
-
-      this.load.remembered[this.preset] = getCurrentPreset(this);
-      markPresetModified(this, false);
-    },
-    saveAs: function (presetName) {
-      if (!this.load.remembered) {
-        // Retain default values upon first save
-        this.load.remembered = {};
-        this.load.remembered[DEFAULT_DEFAULT_PRESET_NAME] = getCurrentPreset(this, true);
-      }
-
-      this.load.remembered[presetName] = getCurrentPreset(this);
-      this.preset = presetName;
-      addPresetOption(this, presetName, true);
-    },
-    revert: function (gui) {
-      common.each(this.__controllers, function (controller) {
-        // Make revert work on Default.
-        if (!this.getRoot().load.remembered) {
-          controller.setValue(controller.initialValue);
-        } else {
-          recallSavedValue(gui || this.getRoot(), controller);
-        }
-      }, this);
-      common.each(this.__folders, function (folder) {
-        folder.revert(folder);
-      });
-
-      if (!gui) {
-        markPresetModified(this.getRoot(), false);
-      }
-    },
-    listen: function (controller) {
-      var init = this.__listening.length == 0;
-
-      this.__listening.push(controller);
-
-      if (init) updateDisplays(this.__listening);
     }
-  });
-
-  function add(gui, object, property, params) {
-    if (object[property] === undefined) {
-      throw new Error("Object " + object + " has no property \"" + property + "\"");
+  }, {
+    key: 'updateDisplay',
+    value: function updateDisplay() {
+      if (dom.isActive(this.__select)) return this;
+      this.__select.value = this.getValue();
+      return get(OptionController.prototype.__proto__ || Object.getPrototypeOf(OptionController.prototype), 'updateDisplay', this).call(this);
     }
+  }]);
+  return OptionController;
+}(Controller);
 
-    var controller;
+var StringController = function (_Controller) {
+  inherits(StringController, _Controller);
 
-    if (params.color) {
-      controller = new ColorController(object, property);
-    } else {
-      var factoryArgs = [object, property].concat(params.factoryArgs);
-      controller = controllerFactory.apply(gui, factoryArgs);
-    }
+  function StringController(object, property) {
+    classCallCheck(this, StringController);
 
-    if (params.before instanceof Controller) {
-      params.before = params.before.__li;
-    }
+    var _this2 = possibleConstructorReturn(this, (StringController.__proto__ || Object.getPrototypeOf(StringController)).call(this, object, property));
 
-    recallSavedValue(gui, controller);
-    dom.addClass(controller.domElement, 'c');
-    var name = document.createElement('span');
-    dom.addClass(name, 'property-name');
-    name.innerHTML = controller.property;
-    var container = document.createElement('div');
-    container.appendChild(name);
-    container.appendChild(controller.domElement);
-    var li = addRow(gui, container, params.before);
-    dom.addClass(li, GUI.CLASS_CONTROLLER_ROW);
-    dom.addClass(li, typeof controller.getValue());
-    augmentController(gui, li, controller);
-
-    gui.__controllers.push(controller);
-
-    return controller;
-  }
-  /**
-   * Add a row to the end of the GUI or before another row.
-   *
-   * @param gui
-   * @param [dom] If specified, inserts the dom content in the new row
-   * @param [liBefore] If specified, places the new row before another row
-   */
-
-
-  function addRow(gui, dom, liBefore) {
-    var li = document.createElement('li');
-    if (dom) li.appendChild(dom);
-
-    if (liBefore) {
-      gui.__ul.insertBefore(li, params.before);
-    } else {
-      gui.__ul.appendChild(li);
-    }
-
-    gui.onResize();
-    return li;
-  }
-
-  function augmentController(gui, li, controller) {
-    controller.__li = li;
-    controller.__gui = gui;
-    common.extend(controller, {
-      options: function (options) {
-        if (arguments.length > 1) {
-          controller.remove();
-          return add(gui, controller.object, controller.property, {
-            before: controller.__li.nextElementSibling,
-            factoryArgs: [common.toArray(arguments)]
-          });
-        }
-
-        if (common.isArray(options) || common.isObject(options)) {
-          controller.remove();
-          return add(gui, controller.object, controller.property, {
-            before: controller.__li.nextElementSibling,
-            factoryArgs: [options]
-          });
-        }
-      },
-      name: function (v) {
-        controller.__li.firstElementChild.firstElementChild.innerHTML = v;
-        return controller;
-      },
-      listen: function () {
-        controller.__gui.listen(controller);
-
-        return controller;
-      },
-      remove: function () {
-        controller.__gui.remove(controller);
-
-        return controller;
-      }
-    }); // All sliders should be accompanied by a box.
-
-    if (controller instanceof NumberControllerSlider) {
-      var box = new NumberControllerBox(controller.object, controller.property, {
-        min: controller.__min,
-        max: controller.__max,
-        step: controller.__step
-      });
-      common.each(['updateDisplay', 'onChange', 'onFinishChange'], function (method) {
-        var pc = controller[method];
-        var pb = box[method];
-
-        controller[method] = box[method] = function () {
-          var args = Array.prototype.slice.call(arguments);
-          pc.apply(controller, args);
-          return pb.apply(box, args);
-        };
-      });
-      dom.addClass(li, 'has-slider');
-      controller.domElement.insertBefore(box.domElement, controller.domElement.firstElementChild);
-    } else if (controller instanceof NumberControllerBox) {
-      var r = function (returned) {
-        // Have we defined both boundaries?
-        if (common.isNumber(controller.__min) && common.isNumber(controller.__max)) {
-          // Well, then lets just replace this with a slider.
-          controller.remove();
-          return add(gui, controller.object, controller.property, {
-            before: controller.__li.nextElementSibling,
-            factoryArgs: [controller.__min, controller.__max, controller.__step]
-          });
-        }
-
-        return returned;
-      };
-
-      controller.min = common.compose(r, controller.min);
-      controller.max = common.compose(r, controller.max);
-    } else if (controller instanceof BooleanController) {
-      dom.bind(li, 'click', function () {
-        dom.fakeEvent(controller.__checkbox, 'click');
-      });
-      dom.bind(controller.__checkbox, 'click', function (e) {
-        e.stopPropagation(); // Prevents double-toggle
-      });
-    } else if (controller instanceof FunctionController) {
-      dom.bind(li, 'click', function () {
-        dom.fakeEvent(controller.__button, 'click');
-      });
-      dom.bind(li, 'mouseover', function () {
-        dom.addClass(controller.__button, 'hover');
-      });
-      dom.bind(li, 'mouseout', function () {
-        dom.removeClass(controller.__button, 'hover');
-      });
-    } else if (controller instanceof ColorController) {
-      dom.addClass(li, 'color');
-      controller.updateDisplay = common.compose(function (r) {
-        li.style.borderLeftColor = controller.__color.toString();
-        return r;
-      }, controller.updateDisplay);
-      controller.updateDisplay();
-    }
-
-    controller.setValue = common.compose(function (r) {
-      if (gui.getRoot().__preset_select && controller.isModified()) {
-        markPresetModified(gui.getRoot(), true);
-      }
-
-      return r;
-    }, controller.setValue);
-  }
-
-  function recallSavedValue(gui, controller) {
-    // Find the topmost GUI, that's where remembered objects live.
-    var root = gui.getRoot(); // Does the object we're controlling match anything we've been told to
-    // remember?
-
-    var matched_index = root.__rememberedObjects.indexOf(controller.object); // Why yes, it does!
-
-
-    if (matched_index != -1) {
-      // Let me fetch a map of controllers for thcommon.isObject.
-      var controller_map = root.__rememberedObjectIndecesToControllers[matched_index]; // Ohp, I believe this is the first controller we've created for this
-      // object. Lets make the map fresh.
-
-      if (controller_map === undefined) {
-        controller_map = {};
-        root.__rememberedObjectIndecesToControllers[matched_index] = controller_map;
-      } // Keep track of this controller
-
-
-      controller_map[controller.property] = controller; // Okay, now have we saved any values for this controller?
-
-      if (root.load && root.load.remembered) {
-        var preset_map = root.load.remembered; // Which preset are we trying to load?
-
-        var preset;
-
-        if (preset_map[gui.preset]) {
-          preset = preset_map[gui.preset];
-        } else if (preset_map[DEFAULT_DEFAULT_PRESET_NAME]) {
-          // Uhh, you can have the default instead?
-          preset = preset_map[DEFAULT_DEFAULT_PRESET_NAME];
-        } else {
-          // Nada.
-          return;
-        } // Did the loaded object remember thcommon.isObject?
-
-
-        if (preset[matched_index] && // Did we remember this particular property?
-        preset[matched_index][controller.property] !== undefined) {
-          // We did remember something for this guy ...
-          var value = preset[matched_index][controller.property]; // And that's what it is.
-
-          controller.initialValue = value;
-          controller.setValue(value);
-        }
-      }
-    }
-  }
-
-  function getLocalStorageHash(gui, key) {
-    // TODO how does this deal with multiple GUI's?
-    return document.location.href + '.' + key;
-  }
-
-  function addSaveMenu(gui) {
-    var div = gui.__save_row = document.createElement('li');
-    dom.addClass(gui.domElement, 'has-save');
-
-    gui.__ul.insertBefore(div, gui.__ul.firstChild);
-
-    dom.addClass(div, 'save-row');
-    var gears = document.createElement('span');
-    gears.innerHTML = '&nbsp;';
-    dom.addClass(gears, 'button gears'); // TODO replace with FunctionController
-
-    var button = document.createElement('span');
-    button.innerHTML = 'Save';
-    dom.addClass(button, 'button');
-    dom.addClass(button, 'save');
-    var button2 = document.createElement('span');
-    button2.innerHTML = 'New';
-    dom.addClass(button2, 'button');
-    dom.addClass(button2, 'save-as');
-    var button3 = document.createElement('span');
-    button3.innerHTML = 'Revert';
-    dom.addClass(button3, 'button');
-    dom.addClass(button3, 'revert');
-    var select = gui.__preset_select = document.createElement('select');
-
-    if (gui.load && gui.load.remembered) {
-      common.each(gui.load.remembered, function (value, key) {
-        addPresetOption(gui, key, key == gui.preset);
-      });
-    } else {
-      addPresetOption(gui, DEFAULT_DEFAULT_PRESET_NAME, false);
-    }
-
-    dom.bind(select, 'change', function () {
-      for (var index = 0; index < gui.__preset_select.length; index++) {
-        gui.__preset_select[index].innerHTML = gui.__preset_select[index].value;
-      }
-
-      gui.preset = this.value;
-    });
-    div.appendChild(select);
-    div.appendChild(gears);
-    div.appendChild(button);
-    div.appendChild(button2);
-    div.appendChild(button3);
-
-    if (SUPPORTS_LOCAL_STORAGE) {
-      var saveLocally = document.getElementById('dg-save-locally');
-      var explain = document.getElementById('dg-local-explain');
-      saveLocally.style.display = 'block';
-      var localStorageCheckBox = document.getElementById('dg-local-storage');
-
-      if (localStorage.getItem(getLocalStorageHash(gui, 'isLocal')) === 'true') {
-        localStorageCheckBox.setAttribute('checked', 'checked');
-      }
-
-      function showHideExplain() {
-        explain.style.display = gui.useLocalStorage ? 'block' : 'none';
-      }
-
-      showHideExplain(); // TODO: Use a boolean controller, fool!
-
-      dom.bind(localStorageCheckBox, 'change', function () {
-        gui.useLocalStorage = !gui.useLocalStorage;
-        showHideExplain();
-      });
-    }
-
-    var newConstructorTextArea = document.getElementById('dg-new-constructor');
-    dom.bind(newConstructorTextArea, 'keydown', function (e) {
-      if (e.metaKey && (e.which === 67 || e.keyCode == 67)) {
-        SAVE_DIALOGUE.hide();
-      }
-    });
-    dom.bind(gears, 'click', function () {
-      newConstructorTextArea.innerHTML = JSON.stringify(gui.getSaveObject(), undefined, 2);
-      SAVE_DIALOGUE.show();
-      newConstructorTextArea.focus();
-      newConstructorTextArea.select();
-    });
-    dom.bind(button, 'click', function () {
-      gui.save();
-    });
-    dom.bind(button2, 'click', function () {
-      var presetName = prompt('Enter a new preset name.');
-      if (presetName) gui.saveAs(presetName);
-    });
-    dom.bind(button3, 'click', function () {
-      gui.revert();
-    }); //    div.appendChild(button2);
-  }
-
-  function addResizeHandle(gui) {
-    gui.__resize_handle = document.createElement('div');
-    common.extend(gui.__resize_handle.style, {
-      width: '6px',
-      marginLeft: '-3px',
-      height: '200px',
-      cursor: 'ew-resize',
-      position: 'absolute' //      border: '1px solid blue'
-
-    });
-    var pmouseX;
-    dom.bind(gui.__resize_handle, 'mousedown', dragStart);
-    dom.bind(gui.__closeButton, 'mousedown', dragStart);
-    gui.domElement.insertBefore(gui.__resize_handle, gui.domElement.firstElementChild);
-
-    function dragStart(e) {
-      e.preventDefault();
-      pmouseX = e.clientX;
-      dom.addClass(gui.__closeButton, GUI.CLASS_DRAG);
-      dom.bind(window, 'mousemove', drag);
-      dom.bind(window, 'mouseup', dragStop);
-      return false;
-    }
-
-    function drag(e) {
-      e.preventDefault();
-      gui.width += pmouseX - e.clientX;
-      gui.onResize();
-      pmouseX = e.clientX;
-      return false;
-    }
-
-    function dragStop() {
-      dom.removeClass(gui.__closeButton, GUI.CLASS_DRAG);
-      dom.unbind(window, 'mousemove', drag);
-      dom.unbind(window, 'mouseup', dragStop);
-    }
-  }
-
-  function setWidth(gui, w) {
-    gui.domElement.style.width = w + 'px'; // Auto placed save-rows are position fixed, so we have to
-    // set the width manually if we want it to bleed to the edge
-
-    if (gui.__save_row && gui.autoPlace) {
-      gui.__save_row.style.width = w + 'px';
-    }
-
-    if (gui.__closeButton) {
-      gui.__closeButton.style.width = w + 'px';
-    }
-  }
-
-  function getCurrentPreset(gui, useInitialValues) {
-    var toReturn = {}; // For each object I'm remembering
-
-    common.each(gui.__rememberedObjects, function (val, index) {
-      var saved_values = {}; // The controllers I've made for thcommon.isObject by property
-
-      var controller_map = gui.__rememberedObjectIndecesToControllers[index]; // Remember each value for each property
-
-      common.each(controller_map, function (controller, property) {
-        saved_values[property] = useInitialValues ? controller.initialValue : controller.getValue();
-      }); // Save the values for thcommon.isObject
-
-      toReturn[index] = saved_values;
-    });
-    return toReturn;
-  }
-
-  function addPresetOption(gui, name, setSelected) {
-    var opt = document.createElement('option');
-    opt.innerHTML = name;
-    opt.value = name;
-
-    gui.__preset_select.appendChild(opt);
-
-    if (setSelected) {
-      gui.__preset_select.selectedIndex = gui.__preset_select.length - 1;
-    }
-  }
-
-  function setPresetSelectIndex(gui) {
-    for (var index = 0; index < gui.__preset_select.length; index++) {
-      if (gui.__preset_select[index].value == gui.preset) {
-        gui.__preset_select.selectedIndex = index;
-      }
-    }
-  }
-
-  function markPresetModified(gui, modified) {
-    var opt = gui.__preset_select[gui.__preset_select.selectedIndex]; //    console.log('mark', modified, opt);
-
-    if (modified) {
-      opt.innerHTML = opt.value + "*";
-    } else {
-      opt.innerHTML = opt.value;
-    }
-  }
-
-  function updateDisplays(controllerArray) {
-    if (controllerArray.length != 0) {
-      requestAnimationFrame(function () {
-        updateDisplays(controllerArray);
-      });
-    }
-
-    common.each(controllerArray, function (c) {
-      c.updateDisplay();
-    });
-  }
-
-  return GUI;
-}(dat.utils.css, "<div id=\"dg-save\" class=\"dg dialogue\">\n\n  Here's the new load parameter for your <code>GUI</code>'s constructor:\n\n  <textarea id=\"dg-new-constructor\"></textarea>\n\n  <div id=\"dg-save-locally\">\n\n    <input id=\"dg-local-storage\" type=\"checkbox\"/> Automatically save\n    values to <code>localStorage</code> on exit.\n\n    <div id=\"dg-local-explain\">The values saved to <code>localStorage</code> will\n      override those passed to <code>dat.GUI</code>'s constructor. This makes it\n      easier to work incrementally, but <code>localStorage</code> is fragile,\n      and your friends may not see the same values you do.\n      \n    </div>\n    \n  </div>\n\n</div>", ".dg ul{list-style:none;margin:0;padding:0;width:100%;clear:both}.dg.ac{position:fixed;top:0;left:0;right:0;height:0;z-index:0}.dg:not(.ac) .main{overflow:hidden}.dg.main{-webkit-transition:opacity 0.1s linear;-o-transition:opacity 0.1s linear;-moz-transition:opacity 0.1s linear;transition:opacity 0.1s linear}.dg.main.taller-than-window{overflow-y:auto}.dg.main.taller-than-window .close-button{opacity:1;margin-top:-1px;border-top:1px solid #2c2c2c}.dg.main ul.closed .close-button{opacity:1 !important}.dg.main:hover .close-button,.dg.main .close-button.drag{opacity:1}.dg.main .close-button{-webkit-transition:opacity 0.1s linear;-o-transition:opacity 0.1s linear;-moz-transition:opacity 0.1s linear;transition:opacity 0.1s linear;border:0;position:absolute;line-height:19px;height:20px;cursor:pointer;text-align:center;background-color:#000}.dg.main .close-button:hover{background-color:#111}.dg.a{float:right;margin-right:15px;overflow-x:hidden}.dg.a.has-save ul{margin-top:27px}.dg.a.has-save ul.closed{margin-top:0}.dg.a .save-row{position:fixed;top:0;z-index:1002}.dg li{-webkit-transition:height 0.1s ease-out;-o-transition:height 0.1s ease-out;-moz-transition:height 0.1s ease-out;transition:height 0.1s ease-out}.dg li:not(.folder){cursor:auto;height:27px;line-height:27px;overflow:hidden;padding:0 4px 0 5px}.dg li.folder{padding:0;border-left:4px solid rgba(0,0,0,0)}.dg li.title{cursor:pointer;margin-left:-4px}.dg .closed li:not(.title),.dg .closed ul li,.dg .closed ul li > *{height:0;overflow:hidden;border:0}.dg .cr{clear:both;padding-left:3px;height:27px}.dg .property-name{cursor:default;float:left;clear:left;width:40%;overflow:hidden;text-overflow:ellipsis}.dg .c{float:left;width:60%}.dg .c input[type=text]{border:0;margin-top:4px;padding:3px;width:100%;float:right}.dg .has-slider input[type=text]{width:30%;margin-left:0}.dg .slider{float:left;width:66%;margin-left:-5px;margin-right:0;height:19px;margin-top:4px}.dg .slider-fg{height:100%}.dg .c input[type=checkbox]{margin-top:9px}.dg .c select{margin-top:5px}.dg .cr.function,.dg .cr.function .property-name,.dg .cr.function *,.dg .cr.boolean,.dg .cr.boolean *{cursor:pointer}.dg .selector{display:none;position:absolute;margin-left:-9px;margin-top:23px;z-index:10}.dg .c:hover .selector,.dg .selector.drag{display:block}.dg li.save-row{padding:0}.dg li.save-row .button{display:inline-block;padding:0px 6px}.dg.dialogue{background-color:#222;width:460px;padding:15px;font-size:13px;line-height:15px}#dg-new-constructor{padding:10px;color:#222;font-family:Monaco, monospace;font-size:10px;border:0;resize:none;box-shadow:inset 1px 1px 1px #888;word-wrap:break-word;margin:12px 0;display:block;width:440px;overflow-y:scroll;height:100px;position:relative}#dg-local-explain{display:none;font-size:11px;line-height:17px;border-radius:3px;background-color:#333;padding:8px;margin-top:10px}#dg-local-explain code{font-size:10px}#dat-gui-save-locally{display:none}.dg{color:#eee;font:11px 'Lucida Grande', sans-serif;text-shadow:0 -1px 0 #111}.dg.main::-webkit-scrollbar{width:5px;background:#1a1a1a}.dg.main::-webkit-scrollbar-corner{height:0;display:none}.dg.main::-webkit-scrollbar-thumb{border-radius:5px;background:#676767}.dg li:not(.folder){background:#1a1a1a;border-bottom:1px solid #2c2c2c}.dg li.save-row{line-height:25px;background:#dad5cb;border:0}.dg li.save-row select{margin-left:5px;width:108px}.dg li.save-row .button{margin-left:5px;margin-top:1px;border-radius:2px;font-size:9px;line-height:7px;padding:4px 4px 5px 4px;background:#c5bdad;color:#fff;text-shadow:0 1px 0 #b0a58f;box-shadow:0 -1px 0 #b0a58f;cursor:pointer}.dg li.save-row .button.gears{background:#c5bdad url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAsAAAANCAYAAAB/9ZQ7AAAAGXRFWHRTb2Z0d2FyZQBBZG9iZSBJbWFnZVJlYWR5ccllPAAAAQJJREFUeNpiYKAU/P//PwGIC/ApCABiBSAW+I8AClAcgKxQ4T9hoMAEUrxx2QSGN6+egDX+/vWT4e7N82AMYoPAx/evwWoYoSYbACX2s7KxCxzcsezDh3evFoDEBYTEEqycggWAzA9AuUSQQgeYPa9fPv6/YWm/Acx5IPb7ty/fw+QZblw67vDs8R0YHyQhgObx+yAJkBqmG5dPPDh1aPOGR/eugW0G4vlIoTIfyFcA+QekhhHJhPdQxbiAIguMBTQZrPD7108M6roWYDFQiIAAv6Aow/1bFwXgis+f2LUAynwoIaNcz8XNx3Dl7MEJUDGQpx9gtQ8YCueB+D26OECAAQDadt7e46D42QAAAABJRU5ErkJggg==) 2px 1px no-repeat;height:7px;width:8px}.dg li.save-row .button:hover{background-color:#bab19e;box-shadow:0 -1px 0 #b0a58f}.dg li.folder{border-bottom:0}.dg li.title{padding-left:16px;background:#000 url(data:image/gif;base64,R0lGODlhBQAFAJEAAP////Pz8////////yH5BAEAAAIALAAAAAAFAAUAAAIIlI+hKgFxoCgAOw==) 6px 10px no-repeat;cursor:pointer;border-bottom:1px solid rgba(255,255,255,0.2)}.dg .closed li.title{background-image:url(data:image/gif;base64,R0lGODlhBQAFAJEAAP////Pz8////////yH5BAEAAAIALAAAAAAFAAUAAAIIlGIWqMCbWAEAOw==)}.dg .cr.boolean{border-left:3px solid #806787}.dg .cr.function{border-left:3px solid #e61d5f}.dg .cr.number{border-left:3px solid #2fa1d6}.dg .cr.number input[type=text]{color:#2fa1d6}.dg .cr.string{border-left:3px solid #1ed36f}.dg .cr.string input[type=text]{color:#1ed36f}.dg .cr.function:hover,.dg .cr.boolean:hover{background:#111}.dg .c input[type=text]{background:#303030;outline:none}.dg .c input[type=text]:hover{background:#3c3c3c}.dg .c input[type=text]:focus{background:#494949;color:#fff}.dg .c .slider{background:#303030;cursor:ew-resize}.dg .c .slider-fg{background:#2fa1d6}.dg .c .slider:hover{background:#3c3c3c}.dg .c .slider:hover .slider-fg{background:#44abda}\n", dat.controllers.factory = function (OptionController, NumberControllerBox, NumberControllerSlider, StringController, FunctionController, BooleanController, common) {
-  return function (object, property) {
-    var initialValue = object[property]; // Providing options?
-
-    if (common.isArray(arguments[2]) || common.isObject(arguments[2])) {
-      return new OptionController(object, property, arguments[2]);
-    } // Providing a map?
-
-
-    if (common.isNumber(initialValue)) {
-      if (common.isNumber(arguments[2]) && common.isNumber(arguments[3])) {
-        // Has min and max.
-        return new NumberControllerSlider(object, property, arguments[2], arguments[3]);
-      } else {
-        return new NumberControllerBox(object, property, {
-          min: arguments[2],
-          max: arguments[3]
-        });
-      }
-    }
-
-    if (common.isString(initialValue)) {
-      return new StringController(object, property);
-    }
-
-    if (common.isFunction(initialValue)) {
-      return new FunctionController(object, property, '');
-    }
-
-    if (common.isBoolean(initialValue)) {
-      return new BooleanController(object, property);
-    }
-  };
-}(dat.controllers.OptionController, dat.controllers.NumberControllerBox, dat.controllers.NumberControllerSlider, dat.controllers.StringController = function (Controller, dom, common) {
-  /**
-   * @class Provides a text input to alter the string property of an object.
-   *
-   * @extends dat.controllers.Controller
-   *
-   * @param {Object} object The object to be manipulated
-   * @param {string} property The name of the property to be manipulated
-   *
-   * @member dat.controllers
-   */
-  var StringController = function (object, property) {
-    StringController.superclass.call(this, object, property);
-
-    var _this = this;
-
-    this.__input = document.createElement('input');
-
-    this.__input.setAttribute('type', 'text');
-
-    dom.bind(this.__input, 'keyup', onChange);
-    dom.bind(this.__input, 'change', onChange);
-    dom.bind(this.__input, 'blur', onBlur);
-    dom.bind(this.__input, 'keydown', function (e) {
-      if (e.keyCode === 13) {
-        this.blur();
-      }
-    });
+    var _this = _this2;
 
     function onChange() {
       _this.setValue(_this.__input.value);
@@ -46164,84 +44910,414 @@ dat.GUI = dat.gui.GUI = function (css, saveDialogueContents, styleSheet, control
       }
     }
 
-    this.updateDisplay();
-    this.domElement.appendChild(this.__input);
-  };
+    _this2.__input = document.createElement('input');
 
-  StringController.superclass = Controller;
-  common.extend(StringController.prototype, Controller.prototype, {
-    updateDisplay: function () {
-      // Stops the caret from moving on account of:
-      // keyup -> setValue -> updateDisplay
+    _this2.__input.setAttribute('type', 'text');
+
+    dom.bind(_this2.__input, 'keyup', onChange);
+    dom.bind(_this2.__input, 'change', onChange);
+    dom.bind(_this2.__input, 'blur', onBlur);
+    dom.bind(_this2.__input, 'keydown', function (e) {
+      if (e.keyCode === 13) {
+        this.blur();
+      }
+    });
+
+    _this2.updateDisplay();
+
+    _this2.domElement.appendChild(_this2.__input);
+
+    return _this2;
+  }
+
+  createClass(StringController, [{
+    key: 'updateDisplay',
+    value: function updateDisplay() {
       if (!dom.isActive(this.__input)) {
         this.__input.value = this.getValue();
       }
 
-      return StringController.superclass.prototype.updateDisplay.call(this);
+      return get(StringController.prototype.__proto__ || Object.getPrototypeOf(StringController.prototype), 'updateDisplay', this).call(this);
     }
-  });
+  }]);
   return StringController;
-}(dat.controllers.Controller, dat.dom.dom, dat.utils.common), dat.controllers.FunctionController, dat.controllers.BooleanController, dat.utils.common), dat.controllers.Controller, dat.controllers.BooleanController, dat.controllers.FunctionController, dat.controllers.NumberControllerBox, dat.controllers.NumberControllerSlider, dat.controllers.OptionController, dat.controllers.ColorController = function (Controller, dom, Color, interpret, common) {
-  var ColorController = function (object, property) {
-    ColorController.superclass.call(this, object, property);
-    this.__color = new Color(this.getValue());
-    this.__temp = new Color(0);
+}(Controller);
 
-    var _this = this;
+function numDecimals(x) {
+  var _x = x.toString();
 
-    this.domElement = document.createElement('div');
-    dom.makeSelectable(this.domElement, false);
-    this.__selector = document.createElement('div');
-    this.__selector.className = 'selector';
-    this.__saturation_field = document.createElement('div');
-    this.__saturation_field.className = 'saturation-field';
-    this.__field_knob = document.createElement('div');
-    this.__field_knob.className = 'field-knob';
-    this.__field_knob_border = '2px solid ';
-    this.__hue_knob = document.createElement('div');
-    this.__hue_knob.className = 'hue-knob';
-    this.__hue_field = document.createElement('div');
-    this.__hue_field.className = 'hue-field';
-    this.__input = document.createElement('input');
-    this.__input.type = 'text';
-    this.__input_textShadow = '0 1px 1px ';
-    dom.bind(this.__input, 'keydown', function (e) {
+  if (_x.indexOf('.') > -1) {
+    return _x.length - _x.indexOf('.') - 1;
+  }
+
+  return 0;
+}
+
+var NumberController = function (_Controller) {
+  inherits(NumberController, _Controller);
+
+  function NumberController(object, property, params) {
+    classCallCheck(this, NumberController);
+
+    var _this = possibleConstructorReturn(this, (NumberController.__proto__ || Object.getPrototypeOf(NumberController)).call(this, object, property));
+
+    var _params = params || {};
+
+    _this.__min = _params.min;
+    _this.__max = _params.max;
+    _this.__step = _params.step;
+
+    if (Common.isUndefined(_this.__step)) {
+      if (_this.initialValue === 0) {
+        _this.__impliedStep = 1;
+      } else {
+        _this.__impliedStep = Math.pow(10, Math.floor(Math.log(Math.abs(_this.initialValue)) / Math.LN10)) / 10;
+      }
+    } else {
+      _this.__impliedStep = _this.__step;
+    }
+
+    _this.__precision = numDecimals(_this.__impliedStep);
+    return _this;
+  }
+
+  createClass(NumberController, [{
+    key: 'setValue',
+    value: function setValue(v) {
+      var _v = v;
+
+      if (this.__min !== undefined && _v < this.__min) {
+        _v = this.__min;
+      } else if (this.__max !== undefined && _v > this.__max) {
+        _v = this.__max;
+      }
+
+      if (this.__step !== undefined && _v % this.__step !== 0) {
+        _v = Math.round(_v / this.__step) * this.__step;
+      }
+
+      return get(NumberController.prototype.__proto__ || Object.getPrototypeOf(NumberController.prototype), 'setValue', this).call(this, _v);
+    }
+  }, {
+    key: 'min',
+    value: function min(minValue) {
+      this.__min = minValue;
+      return this;
+    }
+  }, {
+    key: 'max',
+    value: function max(maxValue) {
+      this.__max = maxValue;
+      return this;
+    }
+  }, {
+    key: 'step',
+    value: function step(stepValue) {
+      this.__step = stepValue;
+      this.__impliedStep = stepValue;
+      this.__precision = numDecimals(stepValue);
+      return this;
+    }
+  }]);
+  return NumberController;
+}(Controller);
+
+function roundToDecimal(value, decimals) {
+  var tenTo = Math.pow(10, decimals);
+  return Math.round(value * tenTo) / tenTo;
+}
+
+var NumberControllerBox = function (_NumberController) {
+  inherits(NumberControllerBox, _NumberController);
+
+  function NumberControllerBox(object, property, params) {
+    classCallCheck(this, NumberControllerBox);
+
+    var _this2 = possibleConstructorReturn(this, (NumberControllerBox.__proto__ || Object.getPrototypeOf(NumberControllerBox)).call(this, object, property, params));
+
+    _this2.__truncationSuspended = false;
+    var _this = _this2;
+    var prevY = void 0;
+
+    function onChange() {
+      var attempted = parseFloat(_this.__input.value);
+
+      if (!Common.isNaN(attempted)) {
+        _this.setValue(attempted);
+      }
+    }
+
+    function onFinish() {
+      if (_this.__onFinishChange) {
+        _this.__onFinishChange.call(_this, _this.getValue());
+      }
+    }
+
+    function onBlur() {
+      onFinish();
+    }
+
+    function onMouseDrag(e) {
+      var diff = prevY - e.clientY;
+
+      _this.setValue(_this.getValue() + diff * _this.__impliedStep);
+
+      prevY = e.clientY;
+    }
+
+    function onMouseUp() {
+      dom.unbind(window, 'mousemove', onMouseDrag);
+      dom.unbind(window, 'mouseup', onMouseUp);
+      onFinish();
+    }
+
+    function onMouseDown(e) {
+      dom.bind(window, 'mousemove', onMouseDrag);
+      dom.bind(window, 'mouseup', onMouseUp);
+      prevY = e.clientY;
+    }
+
+    _this2.__input = document.createElement('input');
+
+    _this2.__input.setAttribute('type', 'text');
+
+    dom.bind(_this2.__input, 'change', onChange);
+    dom.bind(_this2.__input, 'blur', onBlur);
+    dom.bind(_this2.__input, 'mousedown', onMouseDown);
+    dom.bind(_this2.__input, 'keydown', function (e) {
       if (e.keyCode === 13) {
-        // on enter
+        _this.__truncationSuspended = true;
+        this.blur();
+        _this.__truncationSuspended = false;
+        onFinish();
+      }
+    });
+
+    _this2.updateDisplay();
+
+    _this2.domElement.appendChild(_this2.__input);
+
+    return _this2;
+  }
+
+  createClass(NumberControllerBox, [{
+    key: 'updateDisplay',
+    value: function updateDisplay() {
+      this.__input.value = this.__truncationSuspended ? this.getValue() : roundToDecimal(this.getValue(), this.__precision);
+      return get(NumberControllerBox.prototype.__proto__ || Object.getPrototypeOf(NumberControllerBox.prototype), 'updateDisplay', this).call(this);
+    }
+  }]);
+  return NumberControllerBox;
+}(NumberController);
+
+function map(v, i1, i2, o1, o2) {
+  return o1 + (o2 - o1) * ((v - i1) / (i2 - i1));
+}
+
+var NumberControllerSlider = function (_NumberController) {
+  inherits(NumberControllerSlider, _NumberController);
+
+  function NumberControllerSlider(object, property, min, max, step) {
+    classCallCheck(this, NumberControllerSlider);
+
+    var _this2 = possibleConstructorReturn(this, (NumberControllerSlider.__proto__ || Object.getPrototypeOf(NumberControllerSlider)).call(this, object, property, {
+      min: min,
+      max: max,
+      step: step
+    }));
+
+    var _this = _this2;
+    _this2.__background = document.createElement('div');
+    _this2.__foreground = document.createElement('div');
+    dom.bind(_this2.__background, 'mousedown', onMouseDown);
+    dom.bind(_this2.__background, 'touchstart', onTouchStart);
+    dom.addClass(_this2.__background, 'slider');
+    dom.addClass(_this2.__foreground, 'slider-fg');
+
+    function onMouseDown(e) {
+      document.activeElement.blur();
+      dom.bind(window, 'mousemove', onMouseDrag);
+      dom.bind(window, 'mouseup', onMouseUp);
+      onMouseDrag(e);
+    }
+
+    function onMouseDrag(e) {
+      e.preventDefault();
+
+      var bgRect = _this.__background.getBoundingClientRect();
+
+      _this.setValue(map(e.clientX, bgRect.left, bgRect.right, _this.__min, _this.__max));
+
+      return false;
+    }
+
+    function onMouseUp() {
+      dom.unbind(window, 'mousemove', onMouseDrag);
+      dom.unbind(window, 'mouseup', onMouseUp);
+
+      if (_this.__onFinishChange) {
+        _this.__onFinishChange.call(_this, _this.getValue());
+      }
+    }
+
+    function onTouchStart(e) {
+      if (e.touches.length !== 1) {
+        return;
+      }
+
+      dom.bind(window, 'touchmove', onTouchMove);
+      dom.bind(window, 'touchend', onTouchEnd);
+      onTouchMove(e);
+    }
+
+    function onTouchMove(e) {
+      var clientX = e.touches[0].clientX;
+
+      var bgRect = _this.__background.getBoundingClientRect();
+
+      _this.setValue(map(clientX, bgRect.left, bgRect.right, _this.__min, _this.__max));
+    }
+
+    function onTouchEnd() {
+      dom.unbind(window, 'touchmove', onTouchMove);
+      dom.unbind(window, 'touchend', onTouchEnd);
+
+      if (_this.__onFinishChange) {
+        _this.__onFinishChange.call(_this, _this.getValue());
+      }
+    }
+
+    _this2.updateDisplay();
+
+    _this2.__background.appendChild(_this2.__foreground);
+
+    _this2.domElement.appendChild(_this2.__background);
+
+    return _this2;
+  }
+
+  createClass(NumberControllerSlider, [{
+    key: 'updateDisplay',
+    value: function updateDisplay() {
+      var pct = (this.getValue() - this.__min) / (this.__max - this.__min);
+
+      this.__foreground.style.width = pct * 100 + '%';
+      return get(NumberControllerSlider.prototype.__proto__ || Object.getPrototypeOf(NumberControllerSlider.prototype), 'updateDisplay', this).call(this);
+    }
+  }]);
+  return NumberControllerSlider;
+}(NumberController);
+
+var FunctionController = function (_Controller) {
+  inherits(FunctionController, _Controller);
+
+  function FunctionController(object, property, text) {
+    classCallCheck(this, FunctionController);
+
+    var _this2 = possibleConstructorReturn(this, (FunctionController.__proto__ || Object.getPrototypeOf(FunctionController)).call(this, object, property));
+
+    var _this = _this2;
+    _this2.__button = document.createElement('div');
+    _this2.__button.innerHTML = text === undefined ? 'Fire' : text;
+    dom.bind(_this2.__button, 'click', function (e) {
+      e.preventDefault();
+
+      _this.fire();
+
+      return false;
+    });
+    dom.addClass(_this2.__button, 'button');
+
+    _this2.domElement.appendChild(_this2.__button);
+
+    return _this2;
+  }
+
+  createClass(FunctionController, [{
+    key: 'fire',
+    value: function fire() {
+      if (this.__onChange) {
+        this.__onChange.call(this);
+      }
+
+      this.getValue().call(this.object);
+
+      if (this.__onFinishChange) {
+        this.__onFinishChange.call(this, this.getValue());
+      }
+    }
+  }]);
+  return FunctionController;
+}(Controller);
+
+var ColorController = function (_Controller) {
+  inherits(ColorController, _Controller);
+
+  function ColorController(object, property) {
+    classCallCheck(this, ColorController);
+
+    var _this2 = possibleConstructorReturn(this, (ColorController.__proto__ || Object.getPrototypeOf(ColorController)).call(this, object, property));
+
+    _this2.__color = new Color(_this2.getValue());
+    _this2.__temp = new Color(0);
+    var _this = _this2;
+    _this2.domElement = document.createElement('div');
+    dom.makeSelectable(_this2.domElement, false);
+    _this2.__selector = document.createElement('div');
+    _this2.__selector.className = 'selector';
+    _this2.__saturation_field = document.createElement('div');
+    _this2.__saturation_field.className = 'saturation-field';
+    _this2.__field_knob = document.createElement('div');
+    _this2.__field_knob.className = 'field-knob';
+    _this2.__field_knob_border = '2px solid ';
+    _this2.__hue_knob = document.createElement('div');
+    _this2.__hue_knob.className = 'hue-knob';
+    _this2.__hue_field = document.createElement('div');
+    _this2.__hue_field.className = 'hue-field';
+    _this2.__input = document.createElement('input');
+    _this2.__input.type = 'text';
+    _this2.__input_textShadow = '0 1px 1px ';
+    dom.bind(_this2.__input, 'keydown', function (e) {
+      if (e.keyCode === 13) {
         onBlur.call(this);
       }
     });
-    dom.bind(this.__input, 'blur', onBlur);
-    dom.bind(this.__selector, 'mousedown', function (e) {
-      dom.addClass(this, 'drag').bind(window, 'mouseup', function (e) {
+    dom.bind(_this2.__input, 'blur', onBlur);
+    dom.bind(_this2.__selector, 'mousedown', function () {
+      dom.addClass(this, 'drag').bind(window, 'mouseup', function () {
         dom.removeClass(_this.__selector, 'drag');
       });
     });
-    var value_field = document.createElement('div');
-    common.extend(this.__selector.style, {
+    dom.bind(_this2.__selector, 'touchstart', function () {
+      dom.addClass(this, 'drag').bind(window, 'touchend', function () {
+        dom.removeClass(_this.__selector, 'drag');
+      });
+    });
+    var valueField = document.createElement('div');
+    Common.extend(_this2.__selector.style, {
       width: '122px',
       height: '102px',
       padding: '3px',
       backgroundColor: '#222',
       boxShadow: '0px 1px 3px rgba(0,0,0,0.3)'
     });
-    common.extend(this.__field_knob.style, {
+    Common.extend(_this2.__field_knob.style, {
       position: 'absolute',
       width: '12px',
       height: '12px',
-      border: this.__field_knob_border + (this.__color.v < .5 ? '#fff' : '#000'),
+      border: _this2.__field_knob_border + (_this2.__color.v < 0.5 ? '#fff' : '#000'),
       boxShadow: '0px 1px 3px rgba(0,0,0,0.5)',
       borderRadius: '12px',
       zIndex: 1
     });
-    common.extend(this.__hue_knob.style, {
+    Common.extend(_this2.__hue_knob.style, {
       position: 'absolute',
       width: '15px',
       height: '2px',
       borderRight: '4px solid #fff',
       zIndex: 1
     });
-    common.extend(this.__saturation_field.style, {
+    Common.extend(_this2.__saturation_field.style, {
       width: '100px',
       height: '100px',
       border: '1px solid #555',
@@ -46249,49 +45325,67 @@ dat.GUI = dat.gui.GUI = function (css, saveDialogueContents, styleSheet, control
       display: 'inline-block',
       cursor: 'pointer'
     });
-    common.extend(value_field.style, {
+    Common.extend(valueField.style, {
       width: '100%',
       height: '100%',
       background: 'none'
     });
-    linearGradient(value_field, 'top', 'rgba(0,0,0,0)', '#000');
-    common.extend(this.__hue_field.style, {
+    linearGradient(valueField, 'top', 'rgba(0,0,0,0)', '#000');
+    Common.extend(_this2.__hue_field.style, {
       width: '15px',
       height: '100px',
-      display: 'inline-block',
       border: '1px solid #555',
-      cursor: 'ns-resize'
+      cursor: 'ns-resize',
+      position: 'absolute',
+      top: '3px',
+      right: '3px'
     });
-    hueGradient(this.__hue_field);
-    common.extend(this.__input.style, {
+    hueGradient(_this2.__hue_field);
+    Common.extend(_this2.__input.style, {
       outline: 'none',
-      //      width: '120px',
       textAlign: 'center',
-      //      padding: '4px',
-      //      marginBottom: '6px',
       color: '#fff',
       border: 0,
       fontWeight: 'bold',
-      textShadow: this.__input_textShadow + 'rgba(0,0,0,0.7)'
+      textShadow: _this2.__input_textShadow + 'rgba(0,0,0,0.7)'
     });
-    dom.bind(this.__saturation_field, 'mousedown', fieldDown);
-    dom.bind(this.__field_knob, 'mousedown', fieldDown);
-    dom.bind(this.__hue_field, 'mousedown', function (e) {
-      setH(e);
-      dom.bind(window, 'mousemove', setH);
-      dom.bind(window, 'mouseup', unbindH);
-    });
+    dom.bind(_this2.__saturation_field, 'mousedown', fieldDown);
+    dom.bind(_this2.__saturation_field, 'touchstart', fieldDown);
+    dom.bind(_this2.__field_knob, 'mousedown', fieldDown);
+    dom.bind(_this2.__field_knob, 'touchstart', fieldDown);
+    dom.bind(_this2.__hue_field, 'mousedown', fieldDownH);
+    dom.bind(_this2.__hue_field, 'touchstart', fieldDownH);
 
     function fieldDown(e) {
-      setSV(e); // document.body.style.cursor = 'none';
-
+      setSV(e);
       dom.bind(window, 'mousemove', setSV);
-      dom.bind(window, 'mouseup', unbindSV);
+      dom.bind(window, 'touchmove', setSV);
+      dom.bind(window, 'mouseup', fieldUpSV);
+      dom.bind(window, 'touchend', fieldUpSV);
     }
 
-    function unbindSV() {
+    function fieldDownH(e) {
+      setH(e);
+      dom.bind(window, 'mousemove', setH);
+      dom.bind(window, 'touchmove', setH);
+      dom.bind(window, 'mouseup', fieldUpH);
+      dom.bind(window, 'touchend', fieldUpH);
+    }
+
+    function fieldUpSV() {
       dom.unbind(window, 'mousemove', setSV);
-      dom.unbind(window, 'mouseup', unbindSV); // document.body.style.cursor = 'default';
+      dom.unbind(window, 'touchmove', setSV);
+      dom.unbind(window, 'mouseup', fieldUpSV);
+      dom.unbind(window, 'touchend', fieldUpSV);
+      onFinish();
+    }
+
+    function fieldUpH() {
+      dom.unbind(window, 'mousemove', setH);
+      dom.unbind(window, 'touchmove', setH);
+      dom.unbind(window, 'mouseup', fieldUpH);
+      dom.unbind(window, 'touchend', fieldUpH);
+      onFinish();
     }
 
     function onBlur() {
@@ -46306,33 +45400,54 @@ dat.GUI = dat.gui.GUI = function (css, saveDialogueContents, styleSheet, control
       }
     }
 
-    function unbindH() {
-      dom.unbind(window, 'mousemove', setH);
-      dom.unbind(window, 'mouseup', unbindH);
+    function onFinish() {
+      if (_this.__onFinishChange) {
+        _this.__onFinishChange.call(_this, _this.__color.toOriginal());
+      }
     }
 
-    this.__saturation_field.appendChild(value_field);
+    _this2.__saturation_field.appendChild(valueField);
 
-    this.__selector.appendChild(this.__field_knob);
+    _this2.__selector.appendChild(_this2.__field_knob);
 
-    this.__selector.appendChild(this.__saturation_field);
+    _this2.__selector.appendChild(_this2.__saturation_field);
 
-    this.__selector.appendChild(this.__hue_field);
+    _this2.__selector.appendChild(_this2.__hue_field);
 
-    this.__hue_field.appendChild(this.__hue_knob);
+    _this2.__hue_field.appendChild(_this2.__hue_knob);
 
-    this.domElement.appendChild(this.__input);
-    this.domElement.appendChild(this.__selector);
-    this.updateDisplay();
+    _this2.domElement.appendChild(_this2.__input);
+
+    _this2.domElement.appendChild(_this2.__selector);
+
+    _this2.updateDisplay();
 
     function setSV(e) {
-      e.preventDefault();
-      var w = dom.getWidth(_this.__saturation_field);
-      var o = dom.getOffset(_this.__saturation_field);
-      var s = (e.clientX - o.left + document.body.scrollLeft) / w;
-      var v = 1 - (e.clientY - o.top + document.body.scrollTop) / w;
-      if (v > 1) v = 1;else if (v < 0) v = 0;
-      if (s > 1) s = 1;else if (s < 0) s = 0;
+      if (e.type.indexOf('touch') === -1) {
+        e.preventDefault();
+      }
+
+      var fieldRect = _this.__saturation_field.getBoundingClientRect();
+
+      var _ref = e.touches && e.touches[0] || e,
+          clientX = _ref.clientX,
+          clientY = _ref.clientY;
+
+      var s = (clientX - fieldRect.left) / (fieldRect.right - fieldRect.left);
+      var v = 1 - (clientY - fieldRect.top) / (fieldRect.bottom - fieldRect.top);
+
+      if (v > 1) {
+        v = 1;
+      } else if (v < 0) {
+        v = 0;
+      }
+
+      if (s > 1) {
+        s = 1;
+      } else if (s < 0) {
+        s = 0;
+      }
+
       _this.__color.v = v;
       _this.__color.s = s;
 
@@ -46342,289 +45457,195 @@ dat.GUI = dat.gui.GUI = function (css, saveDialogueContents, styleSheet, control
     }
 
     function setH(e) {
-      e.preventDefault();
-      var s = dom.getHeight(_this.__hue_field);
-      var o = dom.getOffset(_this.__hue_field);
-      var h = 1 - (e.clientY - o.top + document.body.scrollTop) / s;
-      if (h > 1) h = 1;else if (h < 0) h = 0;
+      if (e.type.indexOf('touch') === -1) {
+        e.preventDefault();
+      }
+
+      var fieldRect = _this.__hue_field.getBoundingClientRect();
+
+      var _ref2 = e.touches && e.touches[0] || e,
+          clientY = _ref2.clientY;
+
+      var h = 1 - (clientY - fieldRect.top) / (fieldRect.bottom - fieldRect.top);
+
+      if (h > 1) {
+        h = 1;
+      } else if (h < 0) {
+        h = 0;
+      }
+
       _this.__color.h = h * 360;
 
       _this.setValue(_this.__color.toOriginal());
 
       return false;
     }
-  };
 
-  ColorController.superclass = Controller;
-  common.extend(ColorController.prototype, Controller.prototype, {
-    updateDisplay: function () {
+    return _this2;
+  }
+
+  createClass(ColorController, [{
+    key: 'updateDisplay',
+    value: function updateDisplay() {
       var i = interpret(this.getValue());
 
       if (i !== false) {
-        var mismatch = false; // Check for mismatch on the interpreted value.
-
-        common.each(Color.COMPONENTS, function (component) {
-          if (!common.isUndefined(i[component]) && !common.isUndefined(this.__color.__state[component]) && i[component] !== this.__color.__state[component]) {
+        var mismatch = false;
+        Common.each(Color.COMPONENTS, function (component) {
+          if (!Common.isUndefined(i[component]) && !Common.isUndefined(this.__color.__state[component]) && i[component] !== this.__color.__state[component]) {
             mismatch = true;
-            return {}; // break
+            return {};
           }
-        }, this); // If nothing diverges, we keep our previous values
-        // for statefulness, otherwise we recalculate fresh
+        }, this);
 
         if (mismatch) {
-          common.extend(this.__color.__state, i);
+          Common.extend(this.__color.__state, i);
         }
       }
 
-      common.extend(this.__temp.__state, this.__color.__state);
+      Common.extend(this.__temp.__state, this.__color.__state);
       this.__temp.a = 1;
-      var flip = this.__color.v < .5 || this.__color.s > .5 ? 255 : 0;
+      var flip = this.__color.v < 0.5 || this.__color.s > 0.5 ? 255 : 0;
 
       var _flip = 255 - flip;
 
-      common.extend(this.__field_knob.style, {
+      Common.extend(this.__field_knob.style, {
         marginLeft: 100 * this.__color.s - 7 + 'px',
         marginTop: 100 * (1 - this.__color.v) - 7 + 'px',
-        backgroundColor: this.__temp.toString(),
+        backgroundColor: this.__temp.toHexString(),
         border: this.__field_knob_border + 'rgb(' + flip + ',' + flip + ',' + flip + ')'
       });
       this.__hue_knob.style.marginTop = (1 - this.__color.h / 360) * 100 + 'px';
       this.__temp.s = 1;
       this.__temp.v = 1;
-      linearGradient(this.__saturation_field, 'left', '#fff', this.__temp.toString());
-      common.extend(this.__input.style, {
-        backgroundColor: this.__input.value = this.__color.toString(),
+      linearGradient(this.__saturation_field, 'left', '#fff', this.__temp.toHexString());
+      this.__input.value = this.__color.toString();
+      Common.extend(this.__input.style, {
+        backgroundColor: this.__color.toHexString(),
         color: 'rgb(' + flip + ',' + flip + ',' + flip + ')',
         textShadow: this.__input_textShadow + 'rgba(' + _flip + ',' + _flip + ',' + _flip + ',.7)'
       });
     }
-  });
-  var vendors = ['-moz-', '-o-', '-webkit-', '-ms-', ''];
-
-  function linearGradient(elem, x, a, b) {
-    elem.style.background = '';
-    common.each(vendors, function (vendor) {
-      elem.style.cssText += 'background: ' + vendor + 'linear-gradient(' + x + ', ' + a + ' 0%, ' + b + ' 100%); ';
-    });
-  }
-
-  function hueGradient(elem) {
-    elem.style.background = '';
-    elem.style.cssText += 'background: -moz-linear-gradient(top,  #ff0000 0%, #ff00ff 17%, #0000ff 34%, #00ffff 50%, #00ff00 67%, #ffff00 84%, #ff0000 100%);';
-    elem.style.cssText += 'background: -webkit-linear-gradient(top,  #ff0000 0%,#ff00ff 17%,#0000ff 34%,#00ffff 50%,#00ff00 67%,#ffff00 84%,#ff0000 100%);';
-    elem.style.cssText += 'background: -o-linear-gradient(top,  #ff0000 0%,#ff00ff 17%,#0000ff 34%,#00ffff 50%,#00ff00 67%,#ffff00 84%,#ff0000 100%);';
-    elem.style.cssText += 'background: -ms-linear-gradient(top,  #ff0000 0%,#ff00ff 17%,#0000ff 34%,#00ffff 50%,#00ff00 67%,#ffff00 84%,#ff0000 100%);';
-    elem.style.cssText += 'background: linear-gradient(top,  #ff0000 0%,#ff00ff 17%,#0000ff 34%,#00ffff 50%,#00ff00 67%,#ffff00 84%,#ff0000 100%);';
-  }
-
+  }]);
   return ColorController;
-}(dat.controllers.Controller, dat.dom.dom, dat.color.Color = function (interpret, math, toString, common) {
-  var Color = function () {
-    this.__state = interpret.apply(this, arguments);
+}(Controller);
 
-    if (this.__state === false) {
-      throw 'Failed to interpret color arguments';
-    }
+var vendors = ['-moz-', '-o-', '-webkit-', '-ms-', ''];
 
-    this.__state.a = this.__state.a || 1;
-  };
-
-  Color.COMPONENTS = ['r', 'g', 'b', 'h', 's', 'v', 'hex', 'a'];
-  common.extend(Color.prototype, {
-    toString: function () {
-      return toString(this);
-    },
-    toOriginal: function () {
-      return this.__state.conversion.write(this);
-    }
+function linearGradient(elem, x, a, b) {
+  elem.style.background = '';
+  Common.each(vendors, function (vendor) {
+    elem.style.cssText += 'background: ' + vendor + 'linear-gradient(' + x + ', ' + a + ' 0%, ' + b + ' 100%); ';
   });
-  defineRGBComponent(Color.prototype, 'r', 2);
-  defineRGBComponent(Color.prototype, 'g', 1);
-  defineRGBComponent(Color.prototype, 'b', 0);
-  defineHSVComponent(Color.prototype, 'h');
-  defineHSVComponent(Color.prototype, 's');
-  defineHSVComponent(Color.prototype, 'v');
-  Object.defineProperty(Color.prototype, 'a', {
-    get: function () {
-      return this.__state.a;
-    },
-    set: function (v) {
-      this.__state.a = v;
-    }
-  });
-  Object.defineProperty(Color.prototype, 'hex', {
-    get: function () {
-      if (!this.__state.space !== 'HEX') {
-        this.__state.hex = math.rgb_to_hex(this.r, this.g, this.b);
+}
+
+function hueGradient(elem) {
+  elem.style.background = '';
+  elem.style.cssText += 'background: -moz-linear-gradient(top,  #ff0000 0%, #ff00ff 17%, #0000ff 34%, #00ffff 50%, #00ff00 67%, #ffff00 84%, #ff0000 100%);';
+  elem.style.cssText += 'background: -webkit-linear-gradient(top,  #ff0000 0%,#ff00ff 17%,#0000ff 34%,#00ffff 50%,#00ff00 67%,#ffff00 84%,#ff0000 100%);';
+  elem.style.cssText += 'background: -o-linear-gradient(top,  #ff0000 0%,#ff00ff 17%,#0000ff 34%,#00ffff 50%,#00ff00 67%,#ffff00 84%,#ff0000 100%);';
+  elem.style.cssText += 'background: -ms-linear-gradient(top,  #ff0000 0%,#ff00ff 17%,#0000ff 34%,#00ffff 50%,#00ff00 67%,#ffff00 84%,#ff0000 100%);';
+  elem.style.cssText += 'background: linear-gradient(top,  #ff0000 0%,#ff00ff 17%,#0000ff 34%,#00ffff 50%,#00ff00 67%,#ffff00 84%,#ff0000 100%);';
+}
+
+var css = {
+  load: function load(url, indoc) {
+    var doc = indoc || document;
+    var link = doc.createElement('link');
+    link.type = 'text/css';
+    link.rel = 'stylesheet';
+    link.href = url;
+    doc.getElementsByTagName('head')[0].appendChild(link);
+  },
+  inject: function inject(cssContent, indoc) {
+    var doc = indoc || document;
+    var injected = document.createElement('style');
+    injected.type = 'text/css';
+    injected.innerHTML = cssContent;
+    var head = doc.getElementsByTagName('head')[0];
+
+    try {
+      head.appendChild(injected);
+    } catch (e) {}
+  }
+};
+var saveDialogContents = "<div id=\"dg-save\" class=\"dg dialogue\">\n\n  Here's the new load parameter for your <code>GUI</code>'s constructor:\n\n  <textarea id=\"dg-new-constructor\"></textarea>\n\n  <div id=\"dg-save-locally\">\n\n    <input id=\"dg-local-storage\" type=\"checkbox\"/> Automatically save\n    values to <code>localStorage</code> on exit.\n\n    <div id=\"dg-local-explain\">The values saved to <code>localStorage</code> will\n      override those passed to <code>dat.GUI</code>'s constructor. This makes it\n      easier to work incrementally, but <code>localStorage</code> is fragile,\n      and your friends may not see the same values you do.\n\n    </div>\n\n  </div>\n\n</div>";
+
+var ControllerFactory = function ControllerFactory(object, property) {
+  var initialValue = object[property];
+
+  if (Common.isArray(arguments[2]) || Common.isObject(arguments[2])) {
+    return new OptionController(object, property, arguments[2]);
+  }
+
+  if (Common.isNumber(initialValue)) {
+    if (Common.isNumber(arguments[2]) && Common.isNumber(arguments[3])) {
+      if (Common.isNumber(arguments[4])) {
+        return new NumberControllerSlider(object, property, arguments[2], arguments[3], arguments[4]);
       }
 
-      return this.__state.hex;
-    },
-    set: function (v) {
-      this.__state.space = 'HEX';
-      this.__state.hex = v;
+      return new NumberControllerSlider(object, property, arguments[2], arguments[3]);
     }
-  });
 
-  function defineRGBComponent(target, component, componentHexIndex) {
-    Object.defineProperty(target, component, {
-      get: function () {
-        if (this.__state.space === 'RGB') {
-          return this.__state[component];
-        }
+    if (Common.isNumber(arguments[4])) {
+      return new NumberControllerBox(object, property, {
+        min: arguments[2],
+        max: arguments[3],
+        step: arguments[4]
+      });
+    }
 
-        recalculateRGB(this, component, componentHexIndex);
-        return this.__state[component];
-      },
-      set: function (v) {
-        if (this.__state.space !== 'RGB') {
-          recalculateRGB(this, component, componentHexIndex);
-          this.__state.space = 'RGB';
-        }
-
-        this.__state[component] = v;
-      }
+    return new NumberControllerBox(object, property, {
+      min: arguments[2],
+      max: arguments[3]
     });
   }
 
-  function defineHSVComponent(target, component) {
-    Object.defineProperty(target, component, {
-      get: function () {
-        if (this.__state.space === 'HSV') return this.__state[component];
-        recalculateHSV(this);
-        return this.__state[component];
-      },
-      set: function (v) {
-        if (this.__state.space !== 'HSV') {
-          recalculateHSV(this);
-          this.__state.space = 'HSV';
-        }
-
-        this.__state[component] = v;
-      }
-    });
+  if (Common.isString(initialValue)) {
+    return new StringController(object, property);
   }
 
-  function recalculateRGB(color, component, componentHexIndex) {
-    if (color.__state.space === 'HEX') {
-      color.__state[component] = math.component_from_hex(color.__state.hex, componentHexIndex);
-    } else if (color.__state.space === 'HSV') {
-      common.extend(color.__state, math.hsv_to_rgb(color.__state.h, color.__state.s, color.__state.v));
-    } else {
-      throw 'Corrupted color state';
-    }
+  if (Common.isFunction(initialValue)) {
+    return new FunctionController(object, property, '');
   }
 
-  function recalculateHSV(color) {
-    var result = math.rgb_to_hsv(color.r, color.g, color.b);
-    common.extend(color.__state, {
-      s: result.s,
-      v: result.v
-    });
-
-    if (!common.isNaN(result.h)) {
-      color.__state.h = result.h;
-    } else if (common.isUndefined(color.__state.h)) {
-      color.__state.h = 0;
-    }
+  if (Common.isBoolean(initialValue)) {
+    return new BooleanController(object, property);
   }
 
-  return Color;
-}(dat.color.interpret, dat.color.math = function () {
-  var tmpComponent;
-  return {
-    hsv_to_rgb: function (h, s, v) {
-      var hi = Math.floor(h / 60) % 6;
-      var f = h / 60 - Math.floor(h / 60);
-      var p = v * (1.0 - s);
-      var q = v * (1.0 - f * s);
-      var t = v * (1.0 - (1.0 - f) * s);
-      var c = [[v, t, p], [q, v, p], [p, v, t], [p, q, v], [t, p, v], [v, p, q]][hi];
-      return {
-        r: c[0] * 255,
-        g: c[1] * 255,
-        b: c[2] * 255
-      };
-    },
-    rgb_to_hsv: function (r, g, b) {
-      var min = Math.min(r, g, b),
-          max = Math.max(r, g, b),
-          delta = max - min,
-          h,
-          s;
+  return null;
+};
 
-      if (max != 0) {
-        s = delta / max;
-      } else {
-        return {
-          h: NaN,
-          s: 0,
-          v: 0
-        };
-      }
+function requestAnimationFrame(callback) {
+  setTimeout(callback, 1000 / 60);
+}
 
-      if (r == max) {
-        h = (g - b) / delta;
-      } else if (g == max) {
-        h = 2 + (b - r) / delta;
-      } else {
-        h = 4 + (r - g) / delta;
-      }
+var requestAnimationFrame$1 = window.requestAnimationFrame || window.webkitRequestAnimationFrame || window.mozRequestAnimationFrame || window.oRequestAnimationFrame || window.msRequestAnimationFrame || requestAnimationFrame;
 
-      h /= 6;
-
-      if (h < 0) {
-        h += 1;
-      }
-
-      return {
-        h: h * 360,
-        s: s,
-        v: max / 255
-      };
-    },
-    rgb_to_hex: function (r, g, b) {
-      var hex = this.hex_with_component(0, 2, r);
-      hex = this.hex_with_component(hex, 1, g);
-      hex = this.hex_with_component(hex, 0, b);
-      return hex;
-    },
-    component_from_hex: function (hex, componentIndex) {
-      return hex >> componentIndex * 8 & 0xFF;
-    },
-    hex_with_component: function (hex, componentIndex, value) {
-      return value << (tmpComponent = componentIndex * 8) | hex & ~(0xFF << tmpComponent);
-    }
-  };
-}(), dat.color.toString, dat.utils.common), dat.color.interpret, dat.utils.common), dat.utils.requestAnimationFrame = function () {
-  /**
-   * requirejs version of Paul Irish's RequestAnimationFrame
-   * http://paulirish.com/2011/requestanimationframe-for-smart-animating/
-   */
-  return window.webkitRequestAnimationFrame || window.mozRequestAnimationFrame || window.oRequestAnimationFrame || window.msRequestAnimationFrame || function (callback, element) {
-    window.setTimeout(callback, 1000 / 60);
-  };
-}(), dat.dom.CenteredDiv = function (dom, common) {
-  var CenteredDiv = function () {
+var CenteredDiv = function () {
+  function CenteredDiv() {
+    classCallCheck(this, CenteredDiv);
     this.backgroundElement = document.createElement('div');
-    common.extend(this.backgroundElement.style, {
+    Common.extend(this.backgroundElement.style, {
       backgroundColor: 'rgba(0,0,0,0.8)',
       top: 0,
       left: 0,
       display: 'none',
       zIndex: '1000',
       opacity: 0,
-      WebkitTransition: 'opacity 0.2s linear'
+      WebkitTransition: 'opacity 0.2s linear',
+      transition: 'opacity 0.2s linear'
     });
     dom.makeFullscreen(this.backgroundElement);
     this.backgroundElement.style.position = 'fixed';
     this.domElement = document.createElement('div');
-    common.extend(this.domElement.style, {
+    Common.extend(this.domElement.style, {
       position: 'fixed',
       display: 'none',
       zIndex: '1001',
       opacity: 0,
-      WebkitTransition: '-webkit-transform 0.2s ease-out, opacity 0.2s linear'
+      WebkitTransition: '-webkit-transform 0.2s ease-out, opacity 0.2s linear',
+      transition: 'transform 0.2s ease-out, opacity 0.2s linear'
     });
     document.body.appendChild(this.backgroundElement);
     document.body.appendChild(this.domElement);
@@ -46634,583 +45655,1066 @@ dat.GUI = dat.gui.GUI = function (css, saveDialogueContents, styleSheet, control
     dom.bind(this.backgroundElement, 'click', function () {
       _this.hide();
     });
-  };
-
-  CenteredDiv.prototype.show = function () {
-    var _this = this;
-
-    this.backgroundElement.style.display = 'block';
-    this.domElement.style.display = 'block';
-    this.domElement.style.opacity = 0; //    this.domElement.style.top = '52%';
-
-    this.domElement.style.webkitTransform = 'scale(1.1)';
-    this.layout();
-    common.defer(function () {
-      _this.backgroundElement.style.opacity = 1;
-      _this.domElement.style.opacity = 1;
-      _this.domElement.style.webkitTransform = 'scale(1)';
-    });
-  };
-
-  CenteredDiv.prototype.hide = function () {
-    var _this = this;
-
-    var hide = function () {
-      _this.domElement.style.display = 'none';
-      _this.backgroundElement.style.display = 'none';
-      dom.unbind(_this.domElement, 'webkitTransitionEnd', hide);
-      dom.unbind(_this.domElement, 'transitionend', hide);
-      dom.unbind(_this.domElement, 'oTransitionEnd', hide);
-    };
-
-    dom.bind(this.domElement, 'webkitTransitionEnd', hide);
-    dom.bind(this.domElement, 'transitionend', hide);
-    dom.bind(this.domElement, 'oTransitionEnd', hide);
-    this.backgroundElement.style.opacity = 0; //    this.domElement.style.top = '48%';
-
-    this.domElement.style.opacity = 0;
-    this.domElement.style.webkitTransform = 'scale(1.1)';
-  };
-
-  CenteredDiv.prototype.layout = function () {
-    this.domElement.style.left = window.innerWidth / 2 - dom.getWidth(this.domElement) / 2 + 'px';
-    this.domElement.style.top = window.innerHeight / 2 - dom.getHeight(this.domElement) / 2 + 'px';
-  };
-
-  function lockScroll(e) {
-    console.log(e);
   }
 
-  return CenteredDiv;
-}(dat.dom.dom, dat.utils.common), dat.dom.dom, dat.utils.common);
-},{}],"../../../node_modules/dat-gui/vendor/dat.color.js":[function(require,module,exports) {
-/**
- * dat-gui JavaScript Controller Library
- * http://code.google.com/p/dat-gui
- *
- * Copyright 2011 Data Arts Team, Google Creative Lab
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- * http://www.apache.org/licenses/LICENSE-2.0
- */
+  createClass(CenteredDiv, [{
+    key: 'show',
+    value: function show() {
+      var _this = this;
 
-/** @namespace */
-var dat = module.exports = dat || {};
-/** @namespace */
-
-dat.color = dat.color || {};
-/** @namespace */
-
-dat.utils = dat.utils || {};
-
-dat.utils.common = function () {
-  var ARR_EACH = Array.prototype.forEach;
-  var ARR_SLICE = Array.prototype.slice;
-  /**
-   * Band-aid methods for things that should be a lot easier in JavaScript.
-   * Implementation and structure inspired by underscore.js
-   * http://documentcloud.github.com/underscore/
-   */
-
-  return {
-    BREAK: {},
-    extend: function (target) {
-      this.each(ARR_SLICE.call(arguments, 1), function (obj) {
-        for (var key in obj) if (!this.isUndefined(obj[key])) target[key] = obj[key];
-      }, this);
-      return target;
-    },
-    defaults: function (target) {
-      this.each(ARR_SLICE.call(arguments, 1), function (obj) {
-        for (var key in obj) if (this.isUndefined(target[key])) target[key] = obj[key];
-      }, this);
-      return target;
-    },
-    compose: function () {
-      var toCall = ARR_SLICE.call(arguments);
-      return function () {
-        var args = ARR_SLICE.call(arguments);
-
-        for (var i = toCall.length - 1; i >= 0; i--) {
-          args = [toCall[i].apply(this, args)];
-        }
-
-        return args[0];
-      };
-    },
-    each: function (obj, itr, scope) {
-      if (ARR_EACH && obj.forEach === ARR_EACH) {
-        obj.forEach(itr, scope);
-      } else if (obj.length === obj.length + 0) {
-        // Is number but not NaN
-        for (var key = 0, l = obj.length; key < l; key++) if (key in obj && itr.call(scope, obj[key], key) === this.BREAK) return;
-      } else {
-        for (var key in obj) if (itr.call(scope, obj[key], key) === this.BREAK) return;
-      }
-    },
-    defer: function (fnc) {
-      setTimeout(fnc, 0);
-    },
-    toArray: function (obj) {
-      if (obj.toArray) return obj.toArray();
-      return ARR_SLICE.call(obj);
-    },
-    isUndefined: function (obj) {
-      return obj === undefined;
-    },
-    isNull: function (obj) {
-      return obj === null;
-    },
-    isNaN: function (obj) {
-      return obj !== obj;
-    },
-    isArray: Array.isArray || function (obj) {
-      return obj.constructor === Array;
-    },
-    isObject: function (obj) {
-      return obj === Object(obj);
-    },
-    isNumber: function (obj) {
-      return obj === obj + 0;
-    },
-    isString: function (obj) {
-      return obj === obj + '';
-    },
-    isBoolean: function (obj) {
-      return obj === false || obj === true;
-    },
-    isFunction: function (obj) {
-      return Object.prototype.toString.call(obj) === '[object Function]';
+      this.backgroundElement.style.display = 'block';
+      this.domElement.style.display = 'block';
+      this.domElement.style.opacity = 0;
+      this.domElement.style.webkitTransform = 'scale(1.1)';
+      this.layout();
+      Common.defer(function () {
+        _this.backgroundElement.style.opacity = 1;
+        _this.domElement.style.opacity = 1;
+        _this.domElement.style.webkitTransform = 'scale(1)';
+      });
     }
-  };
+  }, {
+    key: 'hide',
+    value: function hide() {
+      var _this = this;
+
+      var hide = function hide() {
+        _this.domElement.style.display = 'none';
+        _this.backgroundElement.style.display = 'none';
+        dom.unbind(_this.domElement, 'webkitTransitionEnd', hide);
+        dom.unbind(_this.domElement, 'transitionend', hide);
+        dom.unbind(_this.domElement, 'oTransitionEnd', hide);
+      };
+
+      dom.bind(this.domElement, 'webkitTransitionEnd', hide);
+      dom.bind(this.domElement, 'transitionend', hide);
+      dom.bind(this.domElement, 'oTransitionEnd', hide);
+      this.backgroundElement.style.opacity = 0;
+      this.domElement.style.opacity = 0;
+      this.domElement.style.webkitTransform = 'scale(1.1)';
+    }
+  }, {
+    key: 'layout',
+    value: function layout() {
+      this.domElement.style.left = window.innerWidth / 2 - dom.getWidth(this.domElement) / 2 + 'px';
+      this.domElement.style.top = window.innerHeight / 2 - dom.getHeight(this.domElement) / 2 + 'px';
+    }
+  }]);
+  return CenteredDiv;
 }();
 
-dat.color.toString = function (common) {
-  return function (color) {
-    if (color.a == 1 || common.isUndefined(color.a)) {
-      var s = color.hex.toString(16);
+var styleSheet = ___$insertStyle(".dg ul{list-style:none;margin:0;padding:0;width:100%;clear:both}.dg.ac{position:fixed;top:0;left:0;right:0;height:0;z-index:0}.dg:not(.ac) .main{overflow:hidden}.dg.main{-webkit-transition:opacity .1s linear;-o-transition:opacity .1s linear;-moz-transition:opacity .1s linear;transition:opacity .1s linear}.dg.main.taller-than-window{overflow-y:auto}.dg.main.taller-than-window .close-button{opacity:1;margin-top:-1px;border-top:1px solid #2c2c2c}.dg.main ul.closed .close-button{opacity:1 !important}.dg.main:hover .close-button,.dg.main .close-button.drag{opacity:1}.dg.main .close-button{-webkit-transition:opacity .1s linear;-o-transition:opacity .1s linear;-moz-transition:opacity .1s linear;transition:opacity .1s linear;border:0;line-height:19px;height:20px;cursor:pointer;text-align:center;background-color:#000}.dg.main .close-button.close-top{position:relative}.dg.main .close-button.close-bottom{position:absolute}.dg.main .close-button:hover{background-color:#111}.dg.a{float:right;margin-right:15px;overflow-y:visible}.dg.a.has-save>ul.close-top{margin-top:0}.dg.a.has-save>ul.close-bottom{margin-top:27px}.dg.a.has-save>ul.closed{margin-top:0}.dg.a .save-row{top:0;z-index:1002}.dg.a .save-row.close-top{position:relative}.dg.a .save-row.close-bottom{position:fixed}.dg li{-webkit-transition:height .1s ease-out;-o-transition:height .1s ease-out;-moz-transition:height .1s ease-out;transition:height .1s ease-out;-webkit-transition:overflow .1s linear;-o-transition:overflow .1s linear;-moz-transition:overflow .1s linear;transition:overflow .1s linear}.dg li:not(.folder){cursor:auto;height:27px;line-height:27px;padding:0 4px 0 5px}.dg li.folder{padding:0;border-left:4px solid rgba(0,0,0,0)}.dg li.title{cursor:pointer;margin-left:-4px}.dg .closed li:not(.title),.dg .closed ul li,.dg .closed ul li>*{height:0;overflow:hidden;border:0}.dg .cr{clear:both;padding-left:3px;height:27px;overflow:hidden}.dg .property-name{cursor:default;float:left;clear:left;width:40%;overflow:hidden;text-overflow:ellipsis}.dg .cr.function .property-name{width:100%}.dg .c{float:left;width:60%;position:relative}.dg .c input[type=text]{border:0;margin-top:4px;padding:3px;width:100%;float:right}.dg .has-slider input[type=text]{width:30%;margin-left:0}.dg .slider{float:left;width:66%;margin-left:-5px;margin-right:0;height:19px;margin-top:4px}.dg .slider-fg{height:100%}.dg .c input[type=checkbox]{margin-top:7px}.dg .c select{margin-top:5px}.dg .cr.function,.dg .cr.function .property-name,.dg .cr.function *,.dg .cr.boolean,.dg .cr.boolean *{cursor:pointer}.dg .cr.color{overflow:visible}.dg .selector{display:none;position:absolute;margin-left:-9px;margin-top:23px;z-index:10}.dg .c:hover .selector,.dg .selector.drag{display:block}.dg li.save-row{padding:0}.dg li.save-row .button{display:inline-block;padding:0px 6px}.dg.dialogue{background-color:#222;width:460px;padding:15px;font-size:13px;line-height:15px}#dg-new-constructor{padding:10px;color:#222;font-family:Monaco, monospace;font-size:10px;border:0;resize:none;box-shadow:inset 1px 1px 1px #888;word-wrap:break-word;margin:12px 0;display:block;width:440px;overflow-y:scroll;height:100px;position:relative}#dg-local-explain{display:none;font-size:11px;line-height:17px;border-radius:3px;background-color:#333;padding:8px;margin-top:10px}#dg-local-explain code{font-size:10px}#dat-gui-save-locally{display:none}.dg{color:#eee;font:11px 'Lucida Grande', sans-serif;text-shadow:0 -1px 0 #111}.dg.main::-webkit-scrollbar{width:5px;background:#1a1a1a}.dg.main::-webkit-scrollbar-corner{height:0;display:none}.dg.main::-webkit-scrollbar-thumb{border-radius:5px;background:#676767}.dg li:not(.folder){background:#1a1a1a;border-bottom:1px solid #2c2c2c}.dg li.save-row{line-height:25px;background:#dad5cb;border:0}.dg li.save-row select{margin-left:5px;width:108px}.dg li.save-row .button{margin-left:5px;margin-top:1px;border-radius:2px;font-size:9px;line-height:7px;padding:4px 4px 5px 4px;background:#c5bdad;color:#fff;text-shadow:0 1px 0 #b0a58f;box-shadow:0 -1px 0 #b0a58f;cursor:pointer}.dg li.save-row .button.gears{background:#c5bdad url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAsAAAANCAYAAAB/9ZQ7AAAAGXRFWHRTb2Z0d2FyZQBBZG9iZSBJbWFnZVJlYWR5ccllPAAAAQJJREFUeNpiYKAU/P//PwGIC/ApCABiBSAW+I8AClAcgKxQ4T9hoMAEUrxx2QSGN6+egDX+/vWT4e7N82AMYoPAx/evwWoYoSYbACX2s7KxCxzcsezDh3evFoDEBYTEEqycggWAzA9AuUSQQgeYPa9fPv6/YWm/Acx5IPb7ty/fw+QZblw67vDs8R0YHyQhgObx+yAJkBqmG5dPPDh1aPOGR/eugW0G4vlIoTIfyFcA+QekhhHJhPdQxbiAIguMBTQZrPD7108M6roWYDFQiIAAv6Aow/1bFwXgis+f2LUAynwoIaNcz8XNx3Dl7MEJUDGQpx9gtQ8YCueB+D26OECAAQDadt7e46D42QAAAABJRU5ErkJggg==) 2px 1px no-repeat;height:7px;width:8px}.dg li.save-row .button:hover{background-color:#bab19e;box-shadow:0 -1px 0 #b0a58f}.dg li.folder{border-bottom:0}.dg li.title{padding-left:16px;background:#000 url(data:image/gif;base64,R0lGODlhBQAFAJEAAP////Pz8////////yH5BAEAAAIALAAAAAAFAAUAAAIIlI+hKgFxoCgAOw==) 6px 10px no-repeat;cursor:pointer;border-bottom:1px solid rgba(255,255,255,0.2)}.dg .closed li.title{background-image:url(data:image/gif;base64,R0lGODlhBQAFAJEAAP////Pz8////////yH5BAEAAAIALAAAAAAFAAUAAAIIlGIWqMCbWAEAOw==)}.dg .cr.boolean{border-left:3px solid #806787}.dg .cr.color{border-left:3px solid}.dg .cr.function{border-left:3px solid #e61d5f}.dg .cr.number{border-left:3px solid #2FA1D6}.dg .cr.number input[type=text]{color:#2FA1D6}.dg .cr.string{border-left:3px solid #1ed36f}.dg .cr.string input[type=text]{color:#1ed36f}.dg .cr.function:hover,.dg .cr.boolean:hover{background:#111}.dg .c input[type=text]{background:#303030;outline:none}.dg .c input[type=text]:hover{background:#3c3c3c}.dg .c input[type=text]:focus{background:#494949;color:#fff}.dg .c .slider{background:#303030;cursor:ew-resize}.dg .c .slider-fg{background:#2FA1D6;max-width:100%}.dg .c .slider:hover{background:#3c3c3c}.dg .c .slider:hover .slider-fg{background:#44abda}\n");
 
-      while (s.length < 6) {
-        s = '0' + s;
+css.inject(styleSheet);
+var CSS_NAMESPACE = 'dg';
+var HIDE_KEY_CODE = 72;
+var CLOSE_BUTTON_HEIGHT = 20;
+var DEFAULT_DEFAULT_PRESET_NAME = 'Default';
+
+var SUPPORTS_LOCAL_STORAGE = function () {
+  try {
+    return !!window.localStorage;
+  } catch (e) {
+    return false;
+  }
+}();
+
+var SAVE_DIALOGUE = void 0;
+var autoPlaceVirgin = true;
+var autoPlaceContainer = void 0;
+var hide = false;
+var hideableGuis = [];
+
+var GUI = function GUI(pars) {
+  var _this = this;
+
+  var params = pars || {};
+  this.domElement = document.createElement('div');
+  this.__ul = document.createElement('ul');
+  this.domElement.appendChild(this.__ul);
+  dom.addClass(this.domElement, CSS_NAMESPACE);
+  this.__folders = {};
+  this.__controllers = [];
+  this.__rememberedObjects = [];
+  this.__rememberedObjectIndecesToControllers = [];
+  this.__listening = [];
+  params = Common.defaults(params, {
+    closeOnTop: false,
+    autoPlace: true,
+    width: GUI.DEFAULT_WIDTH
+  });
+  params = Common.defaults(params, {
+    resizable: params.autoPlace,
+    hideable: params.autoPlace
+  });
+
+  if (!Common.isUndefined(params.load)) {
+    if (params.preset) {
+      params.load.preset = params.preset;
+    }
+  } else {
+    params.load = {
+      preset: DEFAULT_DEFAULT_PRESET_NAME
+    };
+  }
+
+  if (Common.isUndefined(params.parent) && params.hideable) {
+    hideableGuis.push(this);
+  }
+
+  params.resizable = Common.isUndefined(params.parent) && params.resizable;
+
+  if (params.autoPlace && Common.isUndefined(params.scrollable)) {
+    params.scrollable = true;
+  }
+
+  var useLocalStorage = SUPPORTS_LOCAL_STORAGE && localStorage.getItem(getLocalStorageHash(this, 'isLocal')) === 'true';
+  var saveToLocalStorage = void 0;
+  var titleRow = void 0;
+  Object.defineProperties(this, {
+    parent: {
+      get: function get$$1() {
+        return params.parent;
       }
-
-      return '#' + s;
-    } else {
-      return 'rgba(' + Math.round(color.r) + ',' + Math.round(color.g) + ',' + Math.round(color.b) + ',' + color.a + ')';
-    }
-  };
-}(dat.utils.common);
-
-dat.Color = dat.color.Color = function (interpret, math, toString, common) {
-  var Color = function () {
-    this.__state = interpret.apply(this, arguments);
-
-    if (this.__state === false) {
-      throw 'Failed to interpret color arguments';
-    }
-
-    this.__state.a = this.__state.a || 1;
-  };
-
-  Color.COMPONENTS = ['r', 'g', 'b', 'h', 's', 'v', 'hex', 'a'];
-  common.extend(Color.prototype, {
-    toString: function () {
-      return toString(this);
     },
-    toOriginal: function () {
-      return this.__state.conversion.write(this);
-    }
-  });
-  defineRGBComponent(Color.prototype, 'r', 2);
-  defineRGBComponent(Color.prototype, 'g', 1);
-  defineRGBComponent(Color.prototype, 'b', 0);
-  defineHSVComponent(Color.prototype, 'h');
-  defineHSVComponent(Color.prototype, 's');
-  defineHSVComponent(Color.prototype, 'v');
-  Object.defineProperty(Color.prototype, 'a', {
-    get: function () {
-      return this.__state.a;
-    },
-    set: function (v) {
-      this.__state.a = v;
-    }
-  });
-  Object.defineProperty(Color.prototype, 'hex', {
-    get: function () {
-      if (!this.__state.space !== 'HEX') {
-        this.__state.hex = math.rgb_to_hex(this.r, this.g, this.b);
+    scrollable: {
+      get: function get$$1() {
+        return params.scrollable;
       }
-
-      return this.__state.hex;
     },
-    set: function (v) {
-      this.__state.space = 'HEX';
-      this.__state.hex = v;
-    }
-  });
-
-  function defineRGBComponent(target, component, componentHexIndex) {
-    Object.defineProperty(target, component, {
-      get: function () {
-        if (this.__state.space === 'RGB') {
-          return this.__state[component];
+    autoPlace: {
+      get: function get$$1() {
+        return params.autoPlace;
+      }
+    },
+    closeOnTop: {
+      get: function get$$1() {
+        return params.closeOnTop;
+      }
+    },
+    preset: {
+      get: function get$$1() {
+        if (_this.parent) {
+          return _this.getRoot().preset;
         }
 
-        recalculateRGB(this, component, componentHexIndex);
-        return this.__state[component];
+        return params.load.preset;
       },
-      set: function (v) {
-        if (this.__state.space !== 'RGB') {
-          recalculateRGB(this, component, componentHexIndex);
-          this.__state.space = 'RGB';
+      set: function set$$1(v) {
+        if (_this.parent) {
+          _this.getRoot().preset = v;
+        } else {
+          params.load.preset = v;
         }
 
-        this.__state[component] = v;
-      }
-    });
-  }
+        setPresetSelectIndex(this);
 
-  function defineHSVComponent(target, component) {
-    Object.defineProperty(target, component, {
-      get: function () {
-        if (this.__state.space === 'HSV') return this.__state[component];
-        recalculateHSV(this);
-        return this.__state[component];
+        _this.revert();
+      }
+    },
+    width: {
+      get: function get$$1() {
+        return params.width;
       },
-      set: function (v) {
-        if (this.__state.space !== 'HSV') {
-          recalculateHSV(this);
-          this.__state.space = 'HSV';
+      set: function set$$1(v) {
+        params.width = v;
+        setWidth(_this, v);
+      }
+    },
+    name: {
+      get: function get$$1() {
+        return params.name;
+      },
+      set: function set$$1(v) {
+        params.name = v;
+
+        if (titleRow) {
+          titleRow.innerHTML = params.name;
+        }
+      }
+    },
+    closed: {
+      get: function get$$1() {
+        return params.closed;
+      },
+      set: function set$$1(v) {
+        params.closed = v;
+
+        if (params.closed) {
+          dom.addClass(_this.__ul, GUI.CLASS_CLOSED);
+        } else {
+          dom.removeClass(_this.__ul, GUI.CLASS_CLOSED);
         }
 
-        this.__state[component] = v;
+        this.onResize();
+
+        if (_this.__closeButton) {
+          _this.__closeButton.innerHTML = v ? GUI.TEXT_OPEN : GUI.TEXT_CLOSED;
+        }
       }
-    });
-  }
+    },
+    load: {
+      get: function get$$1() {
+        return params.load;
+      }
+    },
+    useLocalStorage: {
+      get: function get$$1() {
+        return useLocalStorage;
+      },
+      set: function set$$1(bool) {
+        if (SUPPORTS_LOCAL_STORAGE) {
+          useLocalStorage = bool;
 
-  function recalculateRGB(color, component, componentHexIndex) {
-    if (color.__state.space === 'HEX') {
-      color.__state[component] = math.component_from_hex(color.__state.hex, componentHexIndex);
-    } else if (color.__state.space === 'HSV') {
-      common.extend(color.__state, math.hsv_to_rgb(color.__state.h, color.__state.s, color.__state.v));
-    } else {
-      throw 'Corrupted color state';
-    }
-  }
-
-  function recalculateHSV(color) {
-    var result = math.rgb_to_hsv(color.r, color.g, color.b);
-    common.extend(color.__state, {
-      s: result.s,
-      v: result.v
-    });
-
-    if (!common.isNaN(result.h)) {
-      color.__state.h = result.h;
-    } else if (common.isUndefined(color.__state.h)) {
-      color.__state.h = 0;
-    }
-  }
-
-  return Color;
-}(dat.color.interpret = function (toString, common) {
-  var result, toReturn;
-
-  var interpret = function () {
-    toReturn = false;
-    var original = arguments.length > 1 ? common.toArray(arguments) : arguments[0];
-    common.each(INTERPRETATIONS, function (family) {
-      if (family.litmus(original)) {
-        common.each(family.conversions, function (conversion, conversionName) {
-          result = conversion.read(original);
-
-          if (toReturn === false && result !== false) {
-            toReturn = result;
-            result.conversionName = conversionName;
-            result.conversion = conversion;
-            return common.BREAK;
+          if (bool) {
+            dom.bind(window, 'unload', saveToLocalStorage);
+          } else {
+            dom.unbind(window, 'unload', saveToLocalStorage);
           }
-        });
-        return common.BREAK;
+
+          localStorage.setItem(getLocalStorageHash(_this, 'isLocal'), bool);
+        }
       }
+    }
+  });
+
+  if (Common.isUndefined(params.parent)) {
+    this.closed = params.closed || false;
+    dom.addClass(this.domElement, GUI.CLASS_MAIN);
+    dom.makeSelectable(this.domElement, false);
+
+    if (SUPPORTS_LOCAL_STORAGE) {
+      if (useLocalStorage) {
+        _this.useLocalStorage = true;
+        var savedGui = localStorage.getItem(getLocalStorageHash(this, 'gui'));
+
+        if (savedGui) {
+          params.load = JSON.parse(savedGui);
+        }
+      }
+    }
+
+    this.__closeButton = document.createElement('div');
+    this.__closeButton.innerHTML = GUI.TEXT_CLOSED;
+    dom.addClass(this.__closeButton, GUI.CLASS_CLOSE_BUTTON);
+
+    if (params.closeOnTop) {
+      dom.addClass(this.__closeButton, GUI.CLASS_CLOSE_TOP);
+      this.domElement.insertBefore(this.__closeButton, this.domElement.childNodes[0]);
+    } else {
+      dom.addClass(this.__closeButton, GUI.CLASS_CLOSE_BOTTOM);
+      this.domElement.appendChild(this.__closeButton);
+    }
+
+    dom.bind(this.__closeButton, 'click', function () {
+      _this.closed = !_this.closed;
+    });
+  } else {
+    if (params.closed === undefined) {
+      params.closed = true;
+    }
+
+    var titleRowName = document.createTextNode(params.name);
+    dom.addClass(titleRowName, 'controller-name');
+    titleRow = addRow(_this, titleRowName);
+
+    var onClickTitle = function onClickTitle(e) {
+      e.preventDefault();
+      _this.closed = !_this.closed;
+      return false;
+    };
+
+    dom.addClass(this.__ul, GUI.CLASS_CLOSED);
+    dom.addClass(titleRow, 'title');
+    dom.bind(titleRow, 'click', onClickTitle);
+
+    if (!params.closed) {
+      this.closed = false;
+    }
+  }
+
+  if (params.autoPlace) {
+    if (Common.isUndefined(params.parent)) {
+      if (autoPlaceVirgin) {
+        autoPlaceContainer = document.createElement('div');
+        dom.addClass(autoPlaceContainer, CSS_NAMESPACE);
+        dom.addClass(autoPlaceContainer, GUI.CLASS_AUTO_PLACE_CONTAINER);
+        document.body.appendChild(autoPlaceContainer);
+        autoPlaceVirgin = false;
+      }
+
+      autoPlaceContainer.appendChild(this.domElement);
+      dom.addClass(this.domElement, GUI.CLASS_AUTO_PLACE);
+    }
+
+    if (!this.parent) {
+      setWidth(_this, params.width);
+    }
+  }
+
+  this.__resizeHandler = function () {
+    _this.onResizeDebounced();
+  };
+
+  dom.bind(window, 'resize', this.__resizeHandler);
+  dom.bind(this.__ul, 'webkitTransitionEnd', this.__resizeHandler);
+  dom.bind(this.__ul, 'transitionend', this.__resizeHandler);
+  dom.bind(this.__ul, 'oTransitionEnd', this.__resizeHandler);
+  this.onResize();
+
+  if (params.resizable) {
+    addResizeHandle(this);
+  }
+
+  saveToLocalStorage = function saveToLocalStorage() {
+    if (SUPPORTS_LOCAL_STORAGE && localStorage.getItem(getLocalStorageHash(_this, 'isLocal')) === 'true') {
+      localStorage.setItem(getLocalStorageHash(_this, 'gui'), JSON.stringify(_this.getSaveObject()));
+    }
+  };
+
+  this.saveToLocalStorageIfPossible = saveToLocalStorage;
+
+  function resetWidth() {
+    var root = _this.getRoot();
+
+    root.width += 1;
+    Common.defer(function () {
+      root.width -= 1;
+    });
+  }
+
+  if (!params.parent) {
+    resetWidth();
+  }
+};
+
+GUI.toggleHide = function () {
+  hide = !hide;
+  Common.each(hideableGuis, function (gui) {
+    gui.domElement.style.display = hide ? 'none' : '';
+  });
+};
+
+GUI.CLASS_AUTO_PLACE = 'a';
+GUI.CLASS_AUTO_PLACE_CONTAINER = 'ac';
+GUI.CLASS_MAIN = 'main';
+GUI.CLASS_CONTROLLER_ROW = 'cr';
+GUI.CLASS_TOO_TALL = 'taller-than-window';
+GUI.CLASS_CLOSED = 'closed';
+GUI.CLASS_CLOSE_BUTTON = 'close-button';
+GUI.CLASS_CLOSE_TOP = 'close-top';
+GUI.CLASS_CLOSE_BOTTOM = 'close-bottom';
+GUI.CLASS_DRAG = 'drag';
+GUI.DEFAULT_WIDTH = 245;
+GUI.TEXT_CLOSED = 'Close Controls';
+GUI.TEXT_OPEN = 'Open Controls';
+
+GUI._keydownHandler = function (e) {
+  if (document.activeElement.type !== 'text' && (e.which === HIDE_KEY_CODE || e.keyCode === HIDE_KEY_CODE)) {
+    GUI.toggleHide();
+  }
+};
+
+dom.bind(window, 'keydown', GUI._keydownHandler, false);
+Common.extend(GUI.prototype, {
+  add: function add(object, property) {
+    return _add(this, object, property, {
+      factoryArgs: Array.prototype.slice.call(arguments, 2)
+    });
+  },
+  addColor: function addColor(object, property) {
+    return _add(this, object, property, {
+      color: true
+    });
+  },
+  remove: function remove(controller) {
+    this.__ul.removeChild(controller.__li);
+
+    this.__controllers.splice(this.__controllers.indexOf(controller), 1);
+
+    var _this = this;
+
+    Common.defer(function () {
+      _this.onResize();
+    });
+  },
+  destroy: function destroy() {
+    if (this.parent) {
+      throw new Error('Only the root GUI should be removed with .destroy(). ' + 'For subfolders, use gui.removeFolder(folder) instead.');
+    }
+
+    if (this.autoPlace) {
+      autoPlaceContainer.removeChild(this.domElement);
+    }
+
+    var _this = this;
+
+    Common.each(this.__folders, function (subfolder) {
+      _this.removeFolder(subfolder);
+    });
+    dom.unbind(window, 'keydown', GUI._keydownHandler, false);
+    removeListeners(this);
+  },
+  addFolder: function addFolder(name) {
+    if (this.__folders[name] !== undefined) {
+      throw new Error('You already have a folder in this GUI by the' + ' name "' + name + '"');
+    }
+
+    var newGuiParams = {
+      name: name,
+      parent: this
+    };
+    newGuiParams.autoPlace = this.autoPlace;
+
+    if (this.load && this.load.folders && this.load.folders[name]) {
+      newGuiParams.closed = this.load.folders[name].closed;
+      newGuiParams.load = this.load.folders[name];
+    }
+
+    var gui = new GUI(newGuiParams);
+    this.__folders[name] = gui;
+    var li = addRow(this, gui.domElement);
+    dom.addClass(li, 'folder');
+    return gui;
+  },
+  removeFolder: function removeFolder(folder) {
+    this.__ul.removeChild(folder.domElement.parentElement);
+
+    delete this.__folders[folder.name];
+
+    if (this.load && this.load.folders && this.load.folders[folder.name]) {
+      delete this.load.folders[folder.name];
+    }
+
+    removeListeners(folder);
+
+    var _this = this;
+
+    Common.each(folder.__folders, function (subfolder) {
+      folder.removeFolder(subfolder);
+    });
+    Common.defer(function () {
+      _this.onResize();
+    });
+  },
+  open: function open() {
+    this.closed = false;
+  },
+  close: function close() {
+    this.closed = true;
+  },
+  hide: function hide() {
+    this.domElement.style.display = 'none';
+  },
+  show: function show() {
+    this.domElement.style.display = '';
+  },
+  onResize: function onResize() {
+    var root = this.getRoot();
+
+    if (root.scrollable) {
+      var top = dom.getOffset(root.__ul).top;
+      var h = 0;
+      Common.each(root.__ul.childNodes, function (node) {
+        if (!(root.autoPlace && node === root.__save_row)) {
+          h += dom.getHeight(node);
+        }
+      });
+
+      if (window.innerHeight - top - CLOSE_BUTTON_HEIGHT < h) {
+        dom.addClass(root.domElement, GUI.CLASS_TOO_TALL);
+        root.__ul.style.height = window.innerHeight - top - CLOSE_BUTTON_HEIGHT + 'px';
+      } else {
+        dom.removeClass(root.domElement, GUI.CLASS_TOO_TALL);
+        root.__ul.style.height = 'auto';
+      }
+    }
+
+    if (root.__resize_handle) {
+      Common.defer(function () {
+        root.__resize_handle.style.height = root.__ul.offsetHeight + 'px';
+      });
+    }
+
+    if (root.__closeButton) {
+      root.__closeButton.style.width = root.width + 'px';
+    }
+  },
+  onResizeDebounced: Common.debounce(function () {
+    this.onResize();
+  }, 50),
+  remember: function remember() {
+    if (Common.isUndefined(SAVE_DIALOGUE)) {
+      SAVE_DIALOGUE = new CenteredDiv();
+      SAVE_DIALOGUE.domElement.innerHTML = saveDialogContents;
+    }
+
+    if (this.parent) {
+      throw new Error('You can only call remember on a top level GUI.');
+    }
+
+    var _this = this;
+
+    Common.each(Array.prototype.slice.call(arguments), function (object) {
+      if (_this.__rememberedObjects.length === 0) {
+        addSaveMenu(_this);
+      }
+
+      if (_this.__rememberedObjects.indexOf(object) === -1) {
+        _this.__rememberedObjects.push(object);
+      }
+    });
+
+    if (this.autoPlace) {
+      setWidth(this, this.width);
+    }
+  },
+  getRoot: function getRoot() {
+    var gui = this;
+
+    while (gui.parent) {
+      gui = gui.parent;
+    }
+
+    return gui;
+  },
+  getSaveObject: function getSaveObject() {
+    var toReturn = this.load;
+    toReturn.closed = this.closed;
+
+    if (this.__rememberedObjects.length > 0) {
+      toReturn.preset = this.preset;
+
+      if (!toReturn.remembered) {
+        toReturn.remembered = {};
+      }
+
+      toReturn.remembered[this.preset] = getCurrentPreset(this);
+    }
+
+    toReturn.folders = {};
+    Common.each(this.__folders, function (element, key) {
+      toReturn.folders[key] = element.getSaveObject();
     });
     return toReturn;
-  };
-
-  var INTERPRETATIONS = [// Strings
-  {
-    litmus: common.isString,
-    conversions: {
-      THREE_CHAR_HEX: {
-        read: function (original) {
-          var test = original.match(/^#([A-F0-9])([A-F0-9])([A-F0-9])$/i);
-          if (test === null) return false;
-          return {
-            space: 'HEX',
-            hex: parseInt('0x' + test[1].toString() + test[1].toString() + test[2].toString() + test[2].toString() + test[3].toString() + test[3].toString())
-          };
-        },
-        write: toString
-      },
-      SIX_CHAR_HEX: {
-        read: function (original) {
-          var test = original.match(/^#([A-F0-9]{6})$/i);
-          if (test === null) return false;
-          return {
-            space: 'HEX',
-            hex: parseInt('0x' + test[1].toString())
-          };
-        },
-        write: toString
-      },
-      CSS_RGB: {
-        read: function (original) {
-          var test = original.match(/^rgb\(\s*(.+)\s*,\s*(.+)\s*,\s*(.+)\s*\)/);
-          if (test === null) return false;
-          return {
-            space: 'RGB',
-            r: parseFloat(test[1]),
-            g: parseFloat(test[2]),
-            b: parseFloat(test[3])
-          };
-        },
-        write: toString
-      },
-      CSS_RGBA: {
-        read: function (original) {
-          var test = original.match(/^rgba\(\s*(.+)\s*,\s*(.+)\s*,\s*(.+)\s*\,\s*(.+)\s*\)/);
-          if (test === null) return false;
-          return {
-            space: 'RGB',
-            r: parseFloat(test[1]),
-            g: parseFloat(test[2]),
-            b: parseFloat(test[3]),
-            a: parseFloat(test[4])
-          };
-        },
-        write: toString
-      }
+  },
+  save: function save() {
+    if (!this.load.remembered) {
+      this.load.remembered = {};
     }
-  }, // Numbers
-  {
-    litmus: common.isNumber,
-    conversions: {
-      HEX: {
-        read: function (original) {
-          return {
-            space: 'HEX',
-            hex: original,
-            conversionName: 'HEX'
-          };
-        },
-        write: function (color) {
-          return color.hex;
-        }
-      }
+
+    this.load.remembered[this.preset] = getCurrentPreset(this);
+    markPresetModified(this, false);
+    this.saveToLocalStorageIfPossible();
+  },
+  saveAs: function saveAs(presetName) {
+    if (!this.load.remembered) {
+      this.load.remembered = {};
+      this.load.remembered[DEFAULT_DEFAULT_PRESET_NAME] = getCurrentPreset(this, true);
     }
-  }, // Arrays
-  {
-    litmus: common.isArray,
-    conversions: {
-      RGB_ARRAY: {
-        read: function (original) {
-          if (original.length != 3) return false;
-          return {
-            space: 'RGB',
-            r: original[0],
-            g: original[1],
-            b: original[2]
-          };
-        },
-        write: function (color) {
-          return [color.r, color.g, color.b];
-        }
-      },
-      RGBA_ARRAY: {
-        read: function (original) {
-          if (original.length != 4) return false;
-          return {
-            space: 'RGB',
-            r: original[0],
-            g: original[1],
-            b: original[2],
-            a: original[3]
-          };
-        },
-        write: function (color) {
-          return [color.r, color.g, color.b, color.a];
-        }
-      }
-    }
-  }, // Objects
-  {
-    litmus: common.isObject,
-    conversions: {
-      RGBA_OBJ: {
-        read: function (original) {
-          if (common.isNumber(original.r) && common.isNumber(original.g) && common.isNumber(original.b) && common.isNumber(original.a)) {
-            return {
-              space: 'RGB',
-              r: original.r,
-              g: original.g,
-              b: original.b,
-              a: original.a
-            };
-          }
 
-          return false;
-        },
-        write: function (color) {
-          return {
-            r: color.r,
-            g: color.g,
-            b: color.b,
-            a: color.a
-          };
-        }
-      },
-      RGB_OBJ: {
-        read: function (original) {
-          if (common.isNumber(original.r) && common.isNumber(original.g) && common.isNumber(original.b)) {
-            return {
-              space: 'RGB',
-              r: original.r,
-              g: original.g,
-              b: original.b
-            };
-          }
-
-          return false;
-        },
-        write: function (color) {
-          return {
-            r: color.r,
-            g: color.g,
-            b: color.b
-          };
-        }
-      },
-      HSVA_OBJ: {
-        read: function (original) {
-          if (common.isNumber(original.h) && common.isNumber(original.s) && common.isNumber(original.v) && common.isNumber(original.a)) {
-            return {
-              space: 'HSV',
-              h: original.h,
-              s: original.s,
-              v: original.v,
-              a: original.a
-            };
-          }
-
-          return false;
-        },
-        write: function (color) {
-          return {
-            h: color.h,
-            s: color.s,
-            v: color.v,
-            a: color.a
-          };
-        }
-      },
-      HSV_OBJ: {
-        read: function (original) {
-          if (common.isNumber(original.h) && common.isNumber(original.s) && common.isNumber(original.v)) {
-            return {
-              space: 'HSV',
-              h: original.h,
-              s: original.s,
-              v: original.v
-            };
-          }
-
-          return false;
-        },
-        write: function (color) {
-          return {
-            h: color.h,
-            s: color.s,
-            v: color.v
-          };
-        }
-      }
-    }
-  }];
-  return interpret;
-}(dat.color.toString, dat.utils.common), dat.color.math = function () {
-  var tmpComponent;
-  return {
-    hsv_to_rgb: function (h, s, v) {
-      var hi = Math.floor(h / 60) % 6;
-      var f = h / 60 - Math.floor(h / 60);
-      var p = v * (1.0 - s);
-      var q = v * (1.0 - f * s);
-      var t = v * (1.0 - (1.0 - f) * s);
-      var c = [[v, t, p], [q, v, p], [p, v, t], [p, q, v], [t, p, v], [v, p, q]][hi];
-      return {
-        r: c[0] * 255,
-        g: c[1] * 255,
-        b: c[2] * 255
-      };
-    },
-    rgb_to_hsv: function (r, g, b) {
-      var min = Math.min(r, g, b),
-          max = Math.max(r, g, b),
-          delta = max - min,
-          h,
-          s;
-
-      if (max != 0) {
-        s = delta / max;
+    this.load.remembered[presetName] = getCurrentPreset(this);
+    this.preset = presetName;
+    addPresetOption(this, presetName, true);
+    this.saveToLocalStorageIfPossible();
+  },
+  revert: function revert(gui) {
+    Common.each(this.__controllers, function (controller) {
+      if (!this.getRoot().load.remembered) {
+        controller.setValue(controller.initialValue);
       } else {
-        return {
-          h: NaN,
-          s: 0,
-          v: 0
-        };
+        recallSavedValue(gui || this.getRoot(), controller);
       }
 
-      if (r == max) {
-        h = (g - b) / delta;
-      } else if (g == max) {
-        h = 2 + (b - r) / delta;
-      } else {
-        h = 4 + (r - g) / delta;
+      if (controller.__onFinishChange) {
+        controller.__onFinishChange.call(controller, controller.getValue());
       }
+    }, this);
+    Common.each(this.__folders, function (folder) {
+      folder.revert(folder);
+    });
 
-      h /= 6;
-
-      if (h < 0) {
-        h += 1;
-      }
-
-      return {
-        h: h * 360,
-        s: s,
-        v: max / 255
-      };
-    },
-    rgb_to_hex: function (r, g, b) {
-      var hex = this.hex_with_component(0, 2, r);
-      hex = this.hex_with_component(hex, 1, g);
-      hex = this.hex_with_component(hex, 0, b);
-      return hex;
-    },
-    component_from_hex: function (hex, componentIndex) {
-      return hex >> componentIndex * 8 & 0xFF;
-    },
-    hex_with_component: function (hex, componentIndex, value) {
-      return value << (tmpComponent = componentIndex * 8) | hex & ~(0xFF << tmpComponent);
+    if (!gui) {
+      markPresetModified(this.getRoot(), false);
     }
-  };
-}(), dat.color.toString, dat.utils.common);
-},{}],"../../../node_modules/dat-gui/index.js":[function(require,module,exports) {
-module.exports = require('./vendor/dat.gui');
-module.exports.color = require('./vendor/dat.color');
-},{"./vendor/dat.gui":"../../../node_modules/dat-gui/vendor/dat.gui.js","./vendor/dat.color":"../../../node_modules/dat-gui/vendor/dat.color.js"}],"../../../node_modules/gsap/gsap-core.js":[function(require,module,exports) {
+  },
+  listen: function listen(controller) {
+    var init = this.__listening.length === 0;
+
+    this.__listening.push(controller);
+
+    if (init) {
+      updateDisplays(this.__listening);
+    }
+  },
+  updateDisplay: function updateDisplay() {
+    Common.each(this.__controllers, function (controller) {
+      controller.updateDisplay();
+    });
+    Common.each(this.__folders, function (folder) {
+      folder.updateDisplay();
+    });
+  }
+});
+
+function addRow(gui, newDom, liBefore) {
+  var li = document.createElement('li');
+
+  if (newDom) {
+    li.appendChild(newDom);
+  }
+
+  if (liBefore) {
+    gui.__ul.insertBefore(li, liBefore);
+  } else {
+    gui.__ul.appendChild(li);
+  }
+
+  gui.onResize();
+  return li;
+}
+
+function removeListeners(gui) {
+  dom.unbind(window, 'resize', gui.__resizeHandler);
+
+  if (gui.saveToLocalStorageIfPossible) {
+    dom.unbind(window, 'unload', gui.saveToLocalStorageIfPossible);
+  }
+}
+
+function markPresetModified(gui, modified) {
+  var opt = gui.__preset_select[gui.__preset_select.selectedIndex];
+
+  if (modified) {
+    opt.innerHTML = opt.value + '*';
+  } else {
+    opt.innerHTML = opt.value;
+  }
+}
+
+function augmentController(gui, li, controller) {
+  controller.__li = li;
+  controller.__gui = gui;
+  Common.extend(controller, {
+    options: function options(_options) {
+      if (arguments.length > 1) {
+        var nextSibling = controller.__li.nextElementSibling;
+        controller.remove();
+        return _add(gui, controller.object, controller.property, {
+          before: nextSibling,
+          factoryArgs: [Common.toArray(arguments)]
+        });
+      }
+
+      if (Common.isArray(_options) || Common.isObject(_options)) {
+        var _nextSibling = controller.__li.nextElementSibling;
+        controller.remove();
+        return _add(gui, controller.object, controller.property, {
+          before: _nextSibling,
+          factoryArgs: [_options]
+        });
+      }
+    },
+    name: function name(_name) {
+      controller.__li.firstElementChild.firstElementChild.innerHTML = _name;
+      return controller;
+    },
+    listen: function listen() {
+      controller.__gui.listen(controller);
+
+      return controller;
+    },
+    remove: function remove() {
+      controller.__gui.remove(controller);
+
+      return controller;
+    }
+  });
+
+  if (controller instanceof NumberControllerSlider) {
+    var box = new NumberControllerBox(controller.object, controller.property, {
+      min: controller.__min,
+      max: controller.__max,
+      step: controller.__step
+    });
+    Common.each(['updateDisplay', 'onChange', 'onFinishChange', 'step', 'min', 'max'], function (method) {
+      var pc = controller[method];
+      var pb = box[method];
+
+      controller[method] = box[method] = function () {
+        var args = Array.prototype.slice.call(arguments);
+        pb.apply(box, args);
+        return pc.apply(controller, args);
+      };
+    });
+    dom.addClass(li, 'has-slider');
+    controller.domElement.insertBefore(box.domElement, controller.domElement.firstElementChild);
+  } else if (controller instanceof NumberControllerBox) {
+    var r = function r(returned) {
+      if (Common.isNumber(controller.__min) && Common.isNumber(controller.__max)) {
+        var oldName = controller.__li.firstElementChild.firstElementChild.innerHTML;
+        var wasListening = controller.__gui.__listening.indexOf(controller) > -1;
+        controller.remove();
+
+        var newController = _add(gui, controller.object, controller.property, {
+          before: controller.__li.nextElementSibling,
+          factoryArgs: [controller.__min, controller.__max, controller.__step]
+        });
+
+        newController.name(oldName);
+        if (wasListening) newController.listen();
+        return newController;
+      }
+
+      return returned;
+    };
+
+    controller.min = Common.compose(r, controller.min);
+    controller.max = Common.compose(r, controller.max);
+  } else if (controller instanceof BooleanController) {
+    dom.bind(li, 'click', function () {
+      dom.fakeEvent(controller.__checkbox, 'click');
+    });
+    dom.bind(controller.__checkbox, 'click', function (e) {
+      e.stopPropagation();
+    });
+  } else if (controller instanceof FunctionController) {
+    dom.bind(li, 'click', function () {
+      dom.fakeEvent(controller.__button, 'click');
+    });
+    dom.bind(li, 'mouseover', function () {
+      dom.addClass(controller.__button, 'hover');
+    });
+    dom.bind(li, 'mouseout', function () {
+      dom.removeClass(controller.__button, 'hover');
+    });
+  } else if (controller instanceof ColorController) {
+    dom.addClass(li, 'color');
+    controller.updateDisplay = Common.compose(function (val) {
+      li.style.borderLeftColor = controller.__color.toString();
+      return val;
+    }, controller.updateDisplay);
+    controller.updateDisplay();
+  }
+
+  controller.setValue = Common.compose(function (val) {
+    if (gui.getRoot().__preset_select && controller.isModified()) {
+      markPresetModified(gui.getRoot(), true);
+    }
+
+    return val;
+  }, controller.setValue);
+}
+
+function recallSavedValue(gui, controller) {
+  var root = gui.getRoot();
+
+  var matchedIndex = root.__rememberedObjects.indexOf(controller.object);
+
+  if (matchedIndex !== -1) {
+    var controllerMap = root.__rememberedObjectIndecesToControllers[matchedIndex];
+
+    if (controllerMap === undefined) {
+      controllerMap = {};
+      root.__rememberedObjectIndecesToControllers[matchedIndex] = controllerMap;
+    }
+
+    controllerMap[controller.property] = controller;
+
+    if (root.load && root.load.remembered) {
+      var presetMap = root.load.remembered;
+      var preset = void 0;
+
+      if (presetMap[gui.preset]) {
+        preset = presetMap[gui.preset];
+      } else if (presetMap[DEFAULT_DEFAULT_PRESET_NAME]) {
+        preset = presetMap[DEFAULT_DEFAULT_PRESET_NAME];
+      } else {
+        return;
+      }
+
+      if (preset[matchedIndex] && preset[matchedIndex][controller.property] !== undefined) {
+        var value = preset[matchedIndex][controller.property];
+        controller.initialValue = value;
+        controller.setValue(value);
+      }
+    }
+  }
+}
+
+function _add(gui, object, property, params) {
+  if (object[property] === undefined) {
+    throw new Error('Object "' + object + '" has no property "' + property + '"');
+  }
+
+  var controller = void 0;
+
+  if (params.color) {
+    controller = new ColorController(object, property);
+  } else {
+    var factoryArgs = [object, property].concat(params.factoryArgs);
+    controller = ControllerFactory.apply(gui, factoryArgs);
+  }
+
+  if (params.before instanceof Controller) {
+    params.before = params.before.__li;
+  }
+
+  recallSavedValue(gui, controller);
+  dom.addClass(controller.domElement, 'c');
+  var name = document.createElement('span');
+  dom.addClass(name, 'property-name');
+  name.innerHTML = controller.property;
+  var container = document.createElement('div');
+  container.appendChild(name);
+  container.appendChild(controller.domElement);
+  var li = addRow(gui, container, params.before);
+  dom.addClass(li, GUI.CLASS_CONTROLLER_ROW);
+
+  if (controller instanceof ColorController) {
+    dom.addClass(li, 'color');
+  } else {
+    dom.addClass(li, _typeof(controller.getValue()));
+  }
+
+  augmentController(gui, li, controller);
+
+  gui.__controllers.push(controller);
+
+  return controller;
+}
+
+function getLocalStorageHash(gui, key) {
+  return document.location.href + '.' + key;
+}
+
+function addPresetOption(gui, name, setSelected) {
+  var opt = document.createElement('option');
+  opt.innerHTML = name;
+  opt.value = name;
+
+  gui.__preset_select.appendChild(opt);
+
+  if (setSelected) {
+    gui.__preset_select.selectedIndex = gui.__preset_select.length - 1;
+  }
+}
+
+function showHideExplain(gui, explain) {
+  explain.style.display = gui.useLocalStorage ? 'block' : 'none';
+}
+
+function addSaveMenu(gui) {
+  var div = gui.__save_row = document.createElement('li');
+  dom.addClass(gui.domElement, 'has-save');
+
+  gui.__ul.insertBefore(div, gui.__ul.firstChild);
+
+  dom.addClass(div, 'save-row');
+  var gears = document.createElement('span');
+  gears.innerHTML = '&nbsp;';
+  dom.addClass(gears, 'button gears');
+  var button = document.createElement('span');
+  button.innerHTML = 'Save';
+  dom.addClass(button, 'button');
+  dom.addClass(button, 'save');
+  var button2 = document.createElement('span');
+  button2.innerHTML = 'New';
+  dom.addClass(button2, 'button');
+  dom.addClass(button2, 'save-as');
+  var button3 = document.createElement('span');
+  button3.innerHTML = 'Revert';
+  dom.addClass(button3, 'button');
+  dom.addClass(button3, 'revert');
+  var select = gui.__preset_select = document.createElement('select');
+
+  if (gui.load && gui.load.remembered) {
+    Common.each(gui.load.remembered, function (value, key) {
+      addPresetOption(gui, key, key === gui.preset);
+    });
+  } else {
+    addPresetOption(gui, DEFAULT_DEFAULT_PRESET_NAME, false);
+  }
+
+  dom.bind(select, 'change', function () {
+    for (var index = 0; index < gui.__preset_select.length; index++) {
+      gui.__preset_select[index].innerHTML = gui.__preset_select[index].value;
+    }
+
+    gui.preset = this.value;
+  });
+  div.appendChild(select);
+  div.appendChild(gears);
+  div.appendChild(button);
+  div.appendChild(button2);
+  div.appendChild(button3);
+
+  if (SUPPORTS_LOCAL_STORAGE) {
+    var explain = document.getElementById('dg-local-explain');
+    var localStorageCheckBox = document.getElementById('dg-local-storage');
+    var saveLocally = document.getElementById('dg-save-locally');
+    saveLocally.style.display = 'block';
+
+    if (localStorage.getItem(getLocalStorageHash(gui, 'isLocal')) === 'true') {
+      localStorageCheckBox.setAttribute('checked', 'checked');
+    }
+
+    showHideExplain(gui, explain);
+    dom.bind(localStorageCheckBox, 'change', function () {
+      gui.useLocalStorage = !gui.useLocalStorage;
+      showHideExplain(gui, explain);
+    });
+  }
+
+  var newConstructorTextArea = document.getElementById('dg-new-constructor');
+  dom.bind(newConstructorTextArea, 'keydown', function (e) {
+    if (e.metaKey && (e.which === 67 || e.keyCode === 67)) {
+      SAVE_DIALOGUE.hide();
+    }
+  });
+  dom.bind(gears, 'click', function () {
+    newConstructorTextArea.innerHTML = JSON.stringify(gui.getSaveObject(), undefined, 2);
+    SAVE_DIALOGUE.show();
+    newConstructorTextArea.focus();
+    newConstructorTextArea.select();
+  });
+  dom.bind(button, 'click', function () {
+    gui.save();
+  });
+  dom.bind(button2, 'click', function () {
+    var presetName = prompt('Enter a new preset name.');
+
+    if (presetName) {
+      gui.saveAs(presetName);
+    }
+  });
+  dom.bind(button3, 'click', function () {
+    gui.revert();
+  });
+}
+
+function addResizeHandle(gui) {
+  var pmouseX = void 0;
+  gui.__resize_handle = document.createElement('div');
+  Common.extend(gui.__resize_handle.style, {
+    width: '6px',
+    marginLeft: '-3px',
+    height: '200px',
+    cursor: 'ew-resize',
+    position: 'absolute'
+  });
+
+  function drag(e) {
+    e.preventDefault();
+    gui.width += pmouseX - e.clientX;
+    gui.onResize();
+    pmouseX = e.clientX;
+    return false;
+  }
+
+  function dragStop() {
+    dom.removeClass(gui.__closeButton, GUI.CLASS_DRAG);
+    dom.unbind(window, 'mousemove', drag);
+    dom.unbind(window, 'mouseup', dragStop);
+  }
+
+  function dragStart(e) {
+    e.preventDefault();
+    pmouseX = e.clientX;
+    dom.addClass(gui.__closeButton, GUI.CLASS_DRAG);
+    dom.bind(window, 'mousemove', drag);
+    dom.bind(window, 'mouseup', dragStop);
+    return false;
+  }
+
+  dom.bind(gui.__resize_handle, 'mousedown', dragStart);
+  dom.bind(gui.__closeButton, 'mousedown', dragStart);
+  gui.domElement.insertBefore(gui.__resize_handle, gui.domElement.firstElementChild);
+}
+
+function setWidth(gui, w) {
+  gui.domElement.style.width = w + 'px';
+
+  if (gui.__save_row && gui.autoPlace) {
+    gui.__save_row.style.width = w + 'px';
+  }
+
+  if (gui.__closeButton) {
+    gui.__closeButton.style.width = w + 'px';
+  }
+}
+
+function getCurrentPreset(gui, useInitialValues) {
+  var toReturn = {};
+  Common.each(gui.__rememberedObjects, function (val, index) {
+    var savedValues = {};
+    var controllerMap = gui.__rememberedObjectIndecesToControllers[index];
+    Common.each(controllerMap, function (controller, property) {
+      savedValues[property] = useInitialValues ? controller.initialValue : controller.getValue();
+    });
+    toReturn[index] = savedValues;
+  });
+  return toReturn;
+}
+
+function setPresetSelectIndex(gui) {
+  for (var index = 0; index < gui.__preset_select.length; index++) {
+    if (gui.__preset_select[index].value === gui.preset) {
+      gui.__preset_select.selectedIndex = index;
+    }
+  }
+}
+
+function updateDisplays(controllerArray) {
+  if (controllerArray.length !== 0) {
+    requestAnimationFrame$1.call(window, function () {
+      updateDisplays(controllerArray);
+    });
+  }
+
+  Common.each(controllerArray, function (c) {
+    c.updateDisplay();
+  });
+}
+
+var color = {
+  Color: Color,
+  math: ColorMath,
+  interpret: interpret
+};
+exports.color = color;
+var controllers = {
+  Controller: Controller,
+  BooleanController: BooleanController,
+  OptionController: OptionController,
+  StringController: StringController,
+  NumberController: NumberController,
+  NumberControllerBox: NumberControllerBox,
+  NumberControllerSlider: NumberControllerSlider,
+  FunctionController: FunctionController,
+  ColorController: ColorController
+};
+exports.controllers = controllers;
+var dom$1 = {
+  dom: dom
+};
+exports.dom = dom$1;
+var gui = {
+  GUI: GUI
+};
+exports.gui = gui;
+var GUI$1 = GUI;
+exports.GUI = GUI$1;
+var index = {
+  color: color,
+  controllers: controllers,
+  dom: dom$1,
+  gui: gui,
+  GUI: GUI$1
+};
+var _default = index;
+exports.default = _default;
+},{}],"../../../node_modules/gsap/gsap-core.js":[function(require,module,exports) {
 "use strict";
 
 Object.defineProperty(exports, "__esModule", {
@@ -53443,7 +52947,12 @@ TweenMaxWithCSS = gsapWithCSS.core.Tween;
 
 exports.TweenMax = TweenMaxWithCSS;
 exports.default = exports.gsap = gsapWithCSS;
-},{"./gsap-core.js":"../../../node_modules/gsap/gsap-core.js","./CSSPlugin.js":"../../../node_modules/gsap/CSSPlugin.js"}],"js/app.js":[function(require,module,exports) {
+},{"./gsap-core.js":"../../../node_modules/gsap/gsap-core.js","./CSSPlugin.js":"../../../node_modules/gsap/CSSPlugin.js"}],"../../../node_modules/@barba/core/dist/barba.umd.js":[function(require,module,exports) {
+var define;
+!function(t,n){"object"==typeof exports&&"undefined"!=typeof module?module.exports=n():"function"==typeof define&&define.amd?define(n):(t=t||self).barba=n()}(this,(function(){function t(t,n){for(var r=0;r<n.length;r++){var e=n[r];e.enumerable=e.enumerable||!1,e.configurable=!0,"value"in e&&(e.writable=!0),Object.defineProperty(t,e.key,e)}}function n(n,r,e){return r&&t(n.prototype,r),e&&t(n,e),n}function r(){return(r=Object.assign||function(t){for(var n=1;n<arguments.length;n++){var r=arguments[n];for(var e in r)Object.prototype.hasOwnProperty.call(r,e)&&(t[e]=r[e])}return t}).apply(this,arguments)}function e(t,n){t.prototype=Object.create(n.prototype),t.prototype.constructor=t,t.__proto__=n}function i(t){return(i=Object.setPrototypeOf?Object.getPrototypeOf:function(t){return t.__proto__||Object.getPrototypeOf(t)})(t)}function o(t,n){return(o=Object.setPrototypeOf||function(t,n){return t.__proto__=n,t})(t,n)}function u(t,n,r){return(u=function(){if("undefined"==typeof Reflect||!Reflect.construct)return!1;if(Reflect.construct.sham)return!1;if("function"==typeof Proxy)return!0;try{return Date.prototype.toString.call(Reflect.construct(Date,[],(function(){}))),!0}catch(t){return!1}}()?Reflect.construct:function(t,n,r){var e=[null];e.push.apply(e,n);var i=new(Function.bind.apply(t,e));return r&&o(i,r.prototype),i}).apply(null,arguments)}function f(t){var n="function"==typeof Map?new Map:void 0;return(f=function(t){if(null===t||-1===Function.toString.call(t).indexOf("[native code]"))return t;if("function"!=typeof t)throw new TypeError("Super expression must either be null or a function");if(void 0!==n){if(n.has(t))return n.get(t);n.set(t,r)}function r(){return u(t,arguments,i(this).constructor)}return r.prototype=Object.create(t.prototype,{constructor:{value:r,enumerable:!1,writable:!0,configurable:!0}}),o(r,t)})(t)}function s(t,n){try{var r=t()}catch(t){return n(t)}return r&&r.then?r.then(void 0,n):r}"undefined"!=typeof Symbol&&(Symbol.iterator||(Symbol.iterator=Symbol("Symbol.iterator"))),"undefined"!=typeof Symbol&&(Symbol.asyncIterator||(Symbol.asyncIterator=Symbol("Symbol.asyncIterator")));var c,a="2.9.7",h=function(){};!function(t){t[t.off=0]="off",t[t.error=1]="error",t[t.warning=2]="warning",t[t.info=3]="info",t[t.debug=4]="debug"}(c||(c={}));var v=c.off,l=function(){function t(t){this.t=t}t.getLevel=function(){return v},t.setLevel=function(t){return v=c[t]};var n=t.prototype;return n.error=function(){for(var t=arguments.length,n=new Array(t),r=0;r<t;r++)n[r]=arguments[r];this.i(console.error,c.error,n)},n.warn=function(){for(var t=arguments.length,n=new Array(t),r=0;r<t;r++)n[r]=arguments[r];this.i(console.warn,c.warning,n)},n.info=function(){for(var t=arguments.length,n=new Array(t),r=0;r<t;r++)n[r]=arguments[r];this.i(console.info,c.info,n)},n.debug=function(){for(var t=arguments.length,n=new Array(t),r=0;r<t;r++)n[r]=arguments[r];this.i(console.log,c.debug,n)},n.i=function(n,r,e){r<=t.getLevel()&&n.apply(console,["["+this.t+"] "].concat(e))},t}(),d=O,m=E,p=g,w=x,b=T,y="/",P=new RegExp(["(\\\\.)","(?:\\:(\\w+)(?:\\(((?:\\\\.|[^\\\\()])+)\\))?|\\(((?:\\\\.|[^\\\\()])+)\\))([+*?])?"].join("|"),"g");function g(t,n){for(var r,e=[],i=0,o=0,u="",f=n&&n.delimiter||y,s=n&&n.whitelist||void 0,c=!1;null!==(r=P.exec(t));){var a=r[0],h=r[1],v=r.index;if(u+=t.slice(o,v),o=v+a.length,h)u+=h[1],c=!0;else{var l="",d=r[2],m=r[3],p=r[4],w=r[5];if(!c&&u.length){var b=u.length-1,g=u[b];(!s||s.indexOf(g)>-1)&&(l=g,u=u.slice(0,b))}u&&(e.push(u),u="",c=!1);var E=m||p,x=l||f;e.push({name:d||i++,prefix:l,delimiter:x,optional:"?"===w||"*"===w,repeat:"+"===w||"*"===w,pattern:E?A(E):"[^"+k(x===f?x:x+f)+"]+?"})}}return(u||o<t.length)&&e.push(u+t.substr(o)),e}function E(t,n){return function(r,e){var i=t.exec(r);if(!i)return!1;for(var o=i[0],u=i.index,f={},s=e&&e.decode||decodeURIComponent,c=1;c<i.length;c++)if(void 0!==i[c]){var a=n[c-1];f[a.name]=a.repeat?i[c].split(a.delimiter).map((function(t){return s(t,a)})):s(i[c],a)}return{path:o,index:u,params:f}}}function x(t,n){for(var r=new Array(t.length),e=0;e<t.length;e++)"object"==typeof t[e]&&(r[e]=new RegExp("^(?:"+t[e].pattern+")$",R(n)));return function(n,e){for(var i="",o=e&&e.encode||encodeURIComponent,u=!e||!1!==e.validate,f=0;f<t.length;f++){var s=t[f];if("string"!=typeof s){var c,a=n?n[s.name]:void 0;if(Array.isArray(a)){if(!s.repeat)throw new TypeError('Expected "'+s.name+'" to not repeat, but got array');if(0===a.length){if(s.optional)continue;throw new TypeError('Expected "'+s.name+'" to not be empty')}for(var h=0;h<a.length;h++){if(c=o(a[h],s),u&&!r[f].test(c))throw new TypeError('Expected all "'+s.name+'" to match "'+s.pattern+'"');i+=(0===h?s.prefix:s.delimiter)+c}}else if("string"!=typeof a&&"number"!=typeof a&&"boolean"!=typeof a){if(!s.optional)throw new TypeError('Expected "'+s.name+'" to be '+(s.repeat?"an array":"a string"))}else{if(c=o(String(a),s),u&&!r[f].test(c))throw new TypeError('Expected "'+s.name+'" to match "'+s.pattern+'", but got "'+c+'"');i+=s.prefix+c}}else i+=s}return i}}function k(t){return t.replace(/([.+*?=^!:${}()[\]|/\\])/g,"\\$1")}function A(t){return t.replace(/([=!:$/()])/g,"\\$1")}function R(t){return t&&t.sensitive?"":"i"}function T(t,n,r){for(var e=(r=r||{}).strict,i=!1!==r.start,o=!1!==r.end,u=r.delimiter||y,f=[].concat(r.endsWith||[]).map(k).concat("$").join("|"),s=i?"^":"",c=0;c<t.length;c++){var a=t[c];if("string"==typeof a)s+=k(a);else{var h=a.repeat?"(?:"+a.pattern+")(?:"+k(a.delimiter)+"(?:"+a.pattern+"))*":a.pattern;n&&n.push(a),s+=a.optional?a.prefix?"(?:"+k(a.prefix)+"("+h+"))?":"("+h+")?":k(a.prefix)+"("+h+")"}}if(o)e||(s+="(?:"+k(u)+")?"),s+="$"===f?"$":"(?="+f+")";else{var v=t[t.length-1],l="string"==typeof v?v[v.length-1]===u:void 0===v;e||(s+="(?:"+k(u)+"(?="+f+"))?"),l||(s+="(?="+k(u)+"|"+f+")")}return new RegExp(s,R(r))}function O(t,n,r){return t instanceof RegExp?function(t,n){if(!n)return t;var r=t.source.match(/\((?!\?)/g);if(r)for(var e=0;e<r.length;e++)n.push({name:e,prefix:null,delimiter:null,optional:!1,repeat:!1,pattern:null});return t}(t,n):Array.isArray(t)?function(t,n,r){for(var e=[],i=0;i<t.length;i++)e.push(O(t[i],n,r).source);return new RegExp("(?:"+e.join("|")+")",R(r))}(t,n,r):function(t,n,r){return T(g(t,r),n,r)}(t,n,r)}d.match=function(t,n){var r=[];return E(O(t,r,n),r)},d.regexpToFunction=m,d.parse=p,d.compile=function(t,n){return x(g(t,n),n)},d.tokensToFunction=w,d.tokensToRegExp=b;var S={container:"container",history:"history",namespace:"namespace",prefix:"data-barba",prevent:"prevent",wrapper:"wrapper"},j=new(function(){function t(){this.o=S,this.u=new DOMParser}var n=t.prototype;return n.toString=function(t){return t.outerHTML},n.toDocument=function(t){return this.u.parseFromString(t,"text/html")},n.toElement=function(t){var n=document.createElement("div");return n.innerHTML=t,n},n.getHtml=function(t){return void 0===t&&(t=document),this.toString(t.documentElement)},n.getWrapper=function(t){return void 0===t&&(t=document),t.querySelector("["+this.o.prefix+'="'+this.o.wrapper+'"]')},n.getContainer=function(t){return void 0===t&&(t=document),t.querySelector("["+this.o.prefix+'="'+this.o.container+'"]')},n.removeContainer=function(t){document.body.contains(t)&&t.parentNode.removeChild(t)},n.addContainer=function(t,n){var r=this.getContainer();r?this.s(t,r):n.appendChild(t)},n.getNamespace=function(t){void 0===t&&(t=document);var n=t.querySelector("["+this.o.prefix+"-"+this.o.namespace+"]");return n?n.getAttribute(this.o.prefix+"-"+this.o.namespace):null},n.getHref=function(t){if(t.tagName&&"a"===t.tagName.toLowerCase()){if("string"==typeof t.href)return t.href;var n=t.getAttribute("href")||t.getAttribute("xlink:href");if(n)return this.resolveUrl(n.baseVal||n)}return null},n.resolveUrl=function(){for(var t=arguments.length,n=new Array(t),r=0;r<t;r++)n[r]=arguments[r];var e=n.length;if(0===e)throw new Error("resolveUrl requires at least one argument; got none.");var i=document.createElement("base");if(i.href=arguments[0],1===e)return i.href;var o=document.getElementsByTagName("head")[0];o.insertBefore(i,o.firstChild);for(var u,f=document.createElement("a"),s=1;s<e;s++)f.href=arguments[s],i.href=u=f.href;return o.removeChild(i),u},n.s=function(t,n){n.parentNode.insertBefore(t,n.nextSibling)},t}()),M=new(function(){function t(){this.h=[],this.v=-1}var e=t.prototype;return e.init=function(t,n){this.l="barba";var r={ns:n,scroll:{x:window.scrollX,y:window.scrollY},url:t};this.h.push(r),this.v=0;var e={from:this.l,index:0,states:[].concat(this.h)};window.history&&window.history.replaceState(e,"",t)},e.change=function(t,n,r){if(r&&r.state){var e=r.state,i=e.index;n=this.m(this.v-i),this.replace(e.states),this.v=i}else this.add(t,n);return n},e.add=function(t,n){var r=this.size,e=this.p(n),i={ns:"tmp",scroll:{x:window.scrollX,y:window.scrollY},url:t};this.h.push(i),this.v=r;var o={from:this.l,index:r,states:[].concat(this.h)};switch(e){case"push":window.history&&window.history.pushState(o,"",t);break;case"replace":window.history&&window.history.replaceState(o,"",t)}},e.update=function(t,n){var e=n||this.v,i=r({},this.get(e),{},t);this.set(e,i)},e.remove=function(t){t?this.h.splice(t,1):this.h.pop(),this.v--},e.clear=function(){this.h=[],this.v=-1},e.replace=function(t){this.h=t},e.get=function(t){return this.h[t]},e.set=function(t,n){return this.h[t]=n},e.p=function(t){var n="push",r=t,e=S.prefix+"-"+S.history;return r.hasAttribute&&r.hasAttribute(e)&&(n=r.getAttribute(e)),n},e.m=function(t){return Math.abs(t)>1?t>0?"forward":"back":0===t?"popstate":t>0?"back":"forward"},n(t,[{key:"current",get:function(){return this.h[this.v]}},{key:"state",get:function(){return this.h[this.h.length-1]}},{key:"previous",get:function(){return this.v<1?null:this.h[this.v-1]}},{key:"size",get:function(){return this.h.length}}]),t}()),L=function(t,n){try{var r=function(){if(!n.next.html)return Promise.resolve(t).then((function(t){var r=n.next;if(t){var e=j.toElement(t);r.namespace=j.getNamespace(e),r.container=j.getContainer(e),r.html=t,M.update({ns:r.namespace});var i=j.toDocument(t);document.title=i.title}}))}();return Promise.resolve(r&&r.then?r.then((function(){})):void 0)}catch(t){return Promise.reject(t)}},$=d,_={__proto__:null,update:L,nextTick:function(){return new Promise((function(t){window.requestAnimationFrame(t)}))},pathToRegexp:$},q=function(){return window.location.origin},B=function(t){return void 0===t&&(t=window.location.href),U(t).port},U=function(t){var n,r=t.match(/:\d+/);if(null===r)/^http/.test(t)&&(n=80),/^https/.test(t)&&(n=443);else{var e=r[0].substring(1);n=parseInt(e,10)}var i,o=t.replace(q(),""),u={},f=o.indexOf("#");f>=0&&(i=o.slice(f+1),o=o.slice(0,f));var s=o.indexOf("?");return s>=0&&(u=D(o.slice(s+1)),o=o.slice(0,s)),{hash:i,path:o,port:n,query:u}},D=function(t){return t.split("&").reduce((function(t,n){var r=n.split("=");return t[r[0]]=r[1],t}),{})},F=function(t){return void 0===t&&(t=window.location.href),t.replace(/(\/#.*|\/|#.*)$/,"")},H={__proto__:null,getHref:function(){return window.location.href},getOrigin:q,getPort:B,getPath:function(t){return void 0===t&&(t=window.location.href),U(t).path},parse:U,parseQuery:D,clean:F};function I(t,n,r){return void 0===n&&(n=2e3),new Promise((function(e,i){var o=new XMLHttpRequest;o.onreadystatechange=function(){if(o.readyState===XMLHttpRequest.DONE)if(200===o.status)e(o.responseText);else if(o.status){var n={status:o.status,statusText:o.statusText};r(t,n),i(n)}},o.ontimeout=function(){var e=new Error("Timeout error ["+n+"]");r(t,e),i(e)},o.onerror=function(){var n=new Error("Fetch error");r(t,n),i(n)},o.open("GET",t),o.timeout=n,o.setRequestHeader("Accept","text/html,application/xhtml+xml,application/xml"),o.setRequestHeader("x-barba","yes"),o.send()}))}var C=function(t){return!!t&&("object"==typeof t||"function"==typeof t)&&"function"==typeof t.then};function N(t,n){return void 0===n&&(n={}),function(){for(var r=arguments.length,e=new Array(r),i=0;i<r;i++)e[i]=arguments[i];var o=!1,u=new Promise((function(r,i){n.async=function(){return o=!0,function(t,n){t?i(t):r(n)}};var u=t.apply(n,e);o||(C(u)?u.then(r,i):r(u))}));return u}}var X=new(function(t){function n(){var n;return(n=t.call(this)||this).logger=new l("@barba/core"),n.all=["ready","page","reset","currentAdded","currentRemoved","nextAdded","nextRemoved","beforeOnce","once","afterOnce","before","beforeLeave","leave","afterLeave","beforeEnter","enter","afterEnter","after"],n.registered=new Map,n.init(),n}e(n,t);var r=n.prototype;return r.init=function(){var t=this;this.registered.clear(),this.all.forEach((function(n){t[n]||(t[n]=function(r,e){t.registered.has(n)||t.registered.set(n,new Set),t.registered.get(n).add({ctx:e||{},fn:r})})}))},r.do=function(t){for(var n=this,r=arguments.length,e=new Array(r>1?r-1:0),i=1;i<r;i++)e[i-1]=arguments[i];if(this.registered.has(t)){var o=Promise.resolve();return this.registered.get(t).forEach((function(t){o=o.then((function(){return N(t.fn,t.ctx).apply(void 0,e)}))})),o.catch((function(r){n.logger.debug("Hook error ["+t+"]"),n.logger.error(r)}))}return Promise.resolve()},r.clear=function(){var t=this;this.all.forEach((function(n){delete t[n]})),this.init()},r.help=function(){this.logger.info("Available hooks: "+this.all.join(","));var t=[];this.registered.forEach((function(n,r){return t.push(r)})),this.logger.info("Registered hooks: "+t.join(","))},n}(h)),z=function(){function t(t){if(this.P=[],"boolean"==typeof t)this.g=t;else{var n=Array.isArray(t)?t:[t];this.P=n.map((function(t){return $(t)}))}}return t.prototype.checkHref=function(t){if("boolean"==typeof this.g)return this.g;var n=U(t).path;return this.P.some((function(t){return null!==t.exec(n)}))},t}(),G=function(t){function n(n){var r;return(r=t.call(this,n)||this).k=new Map,r}e(n,t);var i=n.prototype;return i.set=function(t,n,r){return this.k.set(t,{action:r,request:n}),{action:r,request:n}},i.get=function(t){return this.k.get(t)},i.getRequest=function(t){return this.k.get(t).request},i.getAction=function(t){return this.k.get(t).action},i.has=function(t){return!this.checkHref(t)&&this.k.has(t)},i.delete=function(t){return this.k.delete(t)},i.update=function(t,n){var e=r({},this.k.get(t),{},n);return this.k.set(t,e),e},n}(z),Q=function(){return!window.history.pushState},W=function(t){return!t.el||!t.href},J=function(t){var n=t.event;return n.which>1||n.metaKey||n.ctrlKey||n.shiftKey||n.altKey},K=function(t){var n=t.el;return n.hasAttribute("target")&&"_blank"===n.target},V=function(t){var n=t.el;return void 0!==n.protocol&&window.location.protocol!==n.protocol||void 0!==n.hostname&&window.location.hostname!==n.hostname},Y=function(t){var n=t.el;return void 0!==n.port&&B()!==B(n.href)},Z=function(t){var n=t.el;return n.getAttribute&&"string"==typeof n.getAttribute("download")},tt=function(t){return t.el.hasAttribute(S.prefix+"-"+S.prevent)},nt=function(t){return Boolean(t.el.closest("["+S.prefix+"-"+S.prevent+'="all"]'))},rt=function(t){var n=t.href;return F(n)===F()&&B(n)===B()},et=function(t){function n(n){var r;return(r=t.call(this,n)||this).suite=[],r.tests=new Map,r.init(),r}e(n,t);var r=n.prototype;return r.init=function(){this.add("pushState",Q),this.add("exists",W),this.add("newTab",J),this.add("blank",K),this.add("corsDomain",V),this.add("corsPort",Y),this.add("download",Z),this.add("preventSelf",tt),this.add("preventAll",nt),this.add("sameUrl",rt,!1)},r.add=function(t,n,r){void 0===r&&(r=!0),this.tests.set(t,n),r&&this.suite.push(t)},r.run=function(t,n,r,e){return this.tests.get(t)({el:n,event:r,href:e})},r.checkLink=function(t,n,r){var e=this;return this.suite.some((function(i){return e.run(i,t,n,r)}))},n}(z),it=function(t){function n(r,e){var i;void 0===e&&(e="Barba error");for(var o=arguments.length,u=new Array(o>2?o-2:0),f=2;f<o;f++)u[f-2]=arguments[f];return(i=t.call.apply(t,[this].concat(u))||this).error=r,i.label=e,Error.captureStackTrace&&Error.captureStackTrace(function(t){if(void 0===t)throw new ReferenceError("this hasn't been initialised - super() hasn't been called");return t}(i),n),i.name="BarbaError",i}return e(n,t),n}(f(Error)),ot=function(){function t(t){void 0===t&&(t=[]),this.logger=new l("@barba/core"),this.all=[],this.page=[],this.once=[],this.A=[{name:"namespace",type:"strings"},{name:"custom",type:"function"}],t&&(this.all=this.all.concat(t)),this.update()}var n=t.prototype;return n.add=function(t,n){switch(t){case"rule":this.A.splice(n.position||0,0,n.value);break;case"transition":default:this.all.push(n)}this.update()},n.resolve=function(t,n){var r=this;void 0===n&&(n={});var e=n.once?this.once:this.page;e=e.filter(n.self?function(t){return t.name&&"self"===t.name}:function(t){return!t.name||"self"!==t.name});var i=new Map,o=e.find((function(e){var o=!0,u={};return!(!n.self||"self"!==e.name)||(r.A.reverse().forEach((function(n){o&&(o=r.R(e,n,t,u),e.from&&e.to&&(o=r.R(e,n,t,u,"from")&&r.R(e,n,t,u,"to")),e.from&&!e.to&&(o=r.R(e,n,t,u,"from")),!e.from&&e.to&&(o=r.R(e,n,t,u,"to")))})),i.set(e,u),o)})),u=i.get(o),f=[];if(f.push(n.once?"once":"page"),n.self&&f.push("self"),u){var s,c=[o];Object.keys(u).length>0&&c.push(u),(s=this.logger).info.apply(s,["Transition found ["+f.join(",")+"]"].concat(c))}else this.logger.info("No transition found ["+f.join(",")+"]");return o},n.update=function(){var t=this;this.all=this.all.map((function(n){return t.T(n)})).sort((function(t,n){return t.priority-n.priority})).reverse().map((function(t){return delete t.priority,t})),this.page=this.all.filter((function(t){return void 0!==t.leave||void 0!==t.enter})),this.once=this.all.filter((function(t){return void 0!==t.once}))},n.R=function(t,n,r,e,i){var o=!0,u=!1,f=t,s=n.name,c=s,a=s,h=s,v=i?f[i]:f,l="to"===i?r.next:r.current;if(i?v&&v[s]:v[s]){switch(n.type){case"strings":default:var d=Array.isArray(v[c])?v[c]:[v[c]];l[c]&&-1!==d.indexOf(l[c])&&(u=!0),-1===d.indexOf(l[c])&&(o=!1);break;case"object":var m=Array.isArray(v[a])?v[a]:[v[a]];l[a]?(l[a].name&&-1!==m.indexOf(l[a].name)&&(u=!0),-1===m.indexOf(l[a].name)&&(o=!1)):o=!1;break;case"function":v[h](r)?u=!0:o=!1}u&&(i?(e[i]=e[i]||{},e[i][s]=f[i][s]):e[s]=f[s])}return o},n.O=function(t,n,r){var e=0;return(t[n]||t.from&&t.from[n]||t.to&&t.to[n])&&(e+=Math.pow(10,r),t.from&&t.from[n]&&(e+=1),t.to&&t.to[n]&&(e+=2)),e},n.T=function(t){var n=this;t.priority=0;var r=0;return this.A.forEach((function(e,i){r+=n.O(t,e.name,i+1)})),t.priority=r,t},t}(),ut=function(){function t(t){void 0===t&&(t=[]),this.logger=new l("@barba/core"),this.S=!1,this.store=new ot(t)}var r=t.prototype;return r.get=function(t,n){return this.store.resolve(t,n)},r.doOnce=function(t){var n=t.data,r=t.transition;try{var e=function(){i.S=!1},i=this,o=r||{};i.S=!0;var u=s((function(){return Promise.resolve(i.j("beforeOnce",n,o)).then((function(){return Promise.resolve(i.once(n,o)).then((function(){return Promise.resolve(i.j("afterOnce",n,o)).then((function(){}))}))}))}),(function(t){i.S=!1,i.logger.debug("Transition error [before/after/once]"),i.logger.error(t)}));return Promise.resolve(u&&u.then?u.then(e):e())}catch(t){return Promise.reject(t)}},r.doPage=function(t){var n=t.data,r=t.transition,e=t.page,i=t.wrapper;try{var o=function(t){if(u)return t;f.S=!1},u=!1,f=this,c=r||{},a=!0===c.sync||!1;f.S=!0;var h=s((function(){function t(){return Promise.resolve(f.j("before",n,c)).then((function(){var t=!1;function r(r){return t?r:Promise.resolve(f.remove(n)).then((function(){return Promise.resolve(f.j("after",n,c)).then((function(){}))}))}var o=function(){if(a)return s((function(){return Promise.resolve(f.add(n,i)).then((function(){return Promise.resolve(f.j("beforeLeave",n,c)).then((function(){return Promise.resolve(f.j("beforeEnter",n,c)).then((function(){return Promise.resolve(Promise.all([f.leave(n,c),f.enter(n,c)])).then((function(){return Promise.resolve(f.j("afterLeave",n,c)).then((function(){return Promise.resolve(f.j("afterEnter",n,c)).then((function(){}))}))}))}))}))}))}),(function(t){if(f.M(t))throw new it(t,"Transition error [sync]")}));var r=function(r){return t?r:s((function(){var t=function(){if(!1!==o)return Promise.resolve(f.add(n,i)).then((function(){return Promise.resolve(f.j("beforeEnter",n,c)).then((function(){return Promise.resolve(f.enter(n,c,o)).then((function(){return Promise.resolve(f.j("afterEnter",n,c)).then((function(){}))}))}))}))}();if(t&&t.then)return t.then((function(){}))}),(function(t){if(f.M(t))throw new it(t,"Transition error [before/after/enter]")}))},o=!1,u=s((function(){return Promise.resolve(f.j("beforeLeave",n,c)).then((function(){return Promise.resolve(Promise.all([f.leave(n,c),L(e,n)]).then((function(t){return t[0]}))).then((function(t){return o=t,Promise.resolve(f.j("afterLeave",n,c)).then((function(){}))}))}))}),(function(t){if(f.M(t))throw new it(t,"Transition error [before/after/leave]")}));return u&&u.then?u.then(r):r(u)}();return o&&o.then?o.then(r):r(o)}))}var r=function(){if(a)return Promise.resolve(L(e,n)).then((function(){}))}();return r&&r.then?r.then(t):t()}),(function(t){if(f.S=!1,t.name&&"BarbaError"===t.name)throw f.logger.debug(t.label),f.logger.error(t.error),t;throw f.logger.debug("Transition error [page]"),f.logger.error(t),t}));return Promise.resolve(h&&h.then?h.then(o):o(h))}catch(t){return Promise.reject(t)}},r.once=function(t,n){try{return Promise.resolve(X.do("once",t,n)).then((function(){return n.once?N(n.once,n)(t):Promise.resolve()}))}catch(t){return Promise.reject(t)}},r.leave=function(t,n){try{return Promise.resolve(X.do("leave",t,n)).then((function(){return n.leave?N(n.leave,n)(t):Promise.resolve()}))}catch(t){return Promise.reject(t)}},r.enter=function(t,n,r){try{return Promise.resolve(X.do("enter",t,n)).then((function(){return n.enter?N(n.enter,n)(t,r):Promise.resolve()}))}catch(t){return Promise.reject(t)}},r.add=function(t,n){try{return j.addContainer(t.next.container,n),X.do("nextAdded",t),Promise.resolve()}catch(t){return Promise.reject(t)}},r.remove=function(t){try{return j.removeContainer(t.current.container),X.do("currentRemoved",t),Promise.resolve()}catch(t){return Promise.reject(t)}},r.M=function(t){return t.message?!/Timeout error|Fetch error/.test(t.message):!t.status},r.j=function(t,n,r){try{return Promise.resolve(X.do(t,n,r)).then((function(){return r[t]?N(r[t],r)(n):Promise.resolve()}))}catch(t){return Promise.reject(t)}},n(t,[{key:"isRunning",get:function(){return this.S},set:function(t){this.S=t}},{key:"hasOnce",get:function(){return this.store.once.length>0}},{key:"hasSelf",get:function(){return this.store.all.some((function(t){return"self"===t.name}))}},{key:"shouldWait",get:function(){return this.store.all.some((function(t){return t.to&&!t.to.route||t.sync}))}}]),t}(),ft=function(){function t(t){var n=this;this.names=["beforeLeave","afterLeave","beforeEnter","afterEnter"],this.byNamespace=new Map,0!==t.length&&(t.forEach((function(t){n.byNamespace.set(t.namespace,t)})),this.names.forEach((function(t){X[t](n.L(t))})))}return t.prototype.L=function(t){var n=this;return function(r){var e=t.match(/enter/i)?r.next:r.current,i=n.byNamespace.get(e.namespace);return i&&i[t]?N(i[t],i)(r):Promise.resolve()}},t}();Element.prototype.matches||(Element.prototype.matches=Element.prototype.msMatchesSelector||Element.prototype.webkitMatchesSelector),Element.prototype.closest||(Element.prototype.closest=function(t){var n=this;do{if(n.matches(t))return n;n=n.parentElement||n.parentNode}while(null!==n&&1===n.nodeType);return null});var st={container:null,html:"",namespace:"",url:{hash:"",href:"",path:"",port:null,query:{}}};return new(function(){function t(){this.version=a,this.schemaPage=st,this.Logger=l,this.logger=new l("@barba/core"),this.plugins=[],this.hooks=X,this.dom=j,this.helpers=_,this.history=M,this.request=I,this.url=H}var e=t.prototype;return e.use=function(t,n){var r=this.plugins;r.indexOf(t)>-1?this.logger.warn("Plugin ["+t.name+"] already installed."):"function"==typeof t.install?(t.install(this,n),r.push(t)):this.logger.warn("Plugin ["+t.name+'] has no "install" method.')},e.init=function(t){var n=void 0===t?{}:t,e=n.transitions,i=void 0===e?[]:e,o=n.views,u=void 0===o?[]:o,f=n.schema,s=void 0===f?S:f,c=n.requestError,a=n.timeout,h=void 0===a?2e3:a,v=n.cacheIgnore,d=void 0!==v&&v,m=n.prefetchIgnore,p=void 0!==m&&m,w=n.preventRunning,b=void 0!==w&&w,y=n.prevent,P=void 0===y?null:y,g=n.debug,E=n.logLevel;if(l.setLevel(!0===(void 0!==g&&g)?"debug":void 0===E?"off":E),this.logger.info(this.version),Object.keys(s).forEach((function(t){S[t]&&(S[t]=s[t])})),this.$=c,this.timeout=h,this.cacheIgnore=d,this.prefetchIgnore=p,this.preventRunning=b,this._=this.dom.getWrapper(),!this._)throw new Error("[@barba/core] No Barba wrapper found");this._.setAttribute("aria-live","polite"),this.q();var x=this.data.current;if(!x.container)throw new Error("[@barba/core] No Barba container found");if(this.cache=new G(d),this.prevent=new et(p),this.transitions=new ut(i),this.views=new ft(u),null!==P){if("function"!=typeof P)throw new Error("[@barba/core] Prevent should be a function");this.prevent.add("preventCustom",P)}this.history.init(x.url.href,x.namespace),this.B=this.B.bind(this),this.U=this.U.bind(this),this.D=this.D.bind(this),this.F(),this.plugins.forEach((function(t){return t.init()}));var k=this.data;k.trigger="barba",k.next=k.current,k.current=r({},this.schemaPage),this.hooks.do("ready",k),this.once(k),this.q()},e.destroy=function(){this.q(),this.H(),this.history.clear(),this.hooks.clear(),this.plugins=[]},e.force=function(t){window.location.assign(t)},e.go=function(t,n,r){var e;if(void 0===n&&(n="barba"),this.transitions.isRunning)this.force(t);else if(!(e="popstate"===n?this.history.current&&this.url.getPath(this.history.current.url)===this.url.getPath(t):this.prevent.run("sameUrl",null,null,t))||this.transitions.hasSelf)return n=this.history.change(t,n,r),r&&(r.stopPropagation(),r.preventDefault()),this.page(t,n,e)},e.once=function(t){try{var n=this;return Promise.resolve(n.hooks.do("beforeEnter",t)).then((function(){function r(){return Promise.resolve(n.hooks.do("afterEnter",t)).then((function(){}))}var e=function(){if(n.transitions.hasOnce){var r=n.transitions.get(t,{once:!0});return Promise.resolve(n.transitions.doOnce({transition:r,data:t})).then((function(){}))}}();return e&&e.then?e.then(r):r()}))}catch(t){return Promise.reject(t)}},e.page=function(t,n,e){try{var i=function(){var t=o.data;return Promise.resolve(o.hooks.do("page",t)).then((function(){var n=s((function(){var n=o.transitions.get(t,{once:!1,self:e});return Promise.resolve(o.transitions.doPage({data:t,page:u,transition:n,wrapper:o._})).then((function(){o.q()}))}),(function(){0===l.getLevel()&&o.force(t.current.url.href)}));if(n&&n.then)return n.then((function(){}))}))},o=this;o.data.next.url=r({href:t},o.url.parse(t)),o.data.trigger=n;var u=o.cache.has(t)?o.cache.update(t,{action:"click"}).request:o.cache.set(t,o.request(t,o.timeout,o.onRequestError.bind(o,n)),"click").request,f=function(){if(o.transitions.shouldWait)return Promise.resolve(L(u,o.data)).then((function(){}))}();return Promise.resolve(f&&f.then?f.then(i):i())}catch(t){return Promise.reject(t)}},e.onRequestError=function(t){this.transitions.isRunning=!1;for(var n=arguments.length,r=new Array(n>1?n-1:0),e=1;e<n;e++)r[e-1]=arguments[e];var i=r[0],o=r[1],u=this.cache.getAction(i);return this.cache.delete(i),!(this.$&&!1===this.$(t,u,i,o)||("click"===u&&this.force(i),1))},e.prefetch=function(t){var n=this;this.cache.has(t)||this.cache.set(t,this.request(t,this.timeout,this.onRequestError.bind(this,"barba")).catch((function(t){n.logger.error(t)})),"prefetch")},e.F=function(){!0!==this.prefetchIgnore&&(document.addEventListener("mouseover",this.B),document.addEventListener("touchstart",this.B)),document.addEventListener("click",this.U),window.addEventListener("popstate",this.D)},e.H=function(){!0!==this.prefetchIgnore&&(document.removeEventListener("mouseover",this.B),document.removeEventListener("touchstart",this.B)),document.removeEventListener("click",this.U),window.removeEventListener("popstate",this.D)},e.B=function(t){var n=this,r=this.I(t);if(r){var e=this.dom.getHref(r);this.prevent.checkHref(e)||this.cache.has(e)||this.cache.set(e,this.request(e,this.timeout,this.onRequestError.bind(this,r)).catch((function(t){n.logger.error(t)})),"enter")}},e.U=function(t){var n=this.I(t);if(n)return this.transitions.isRunning&&this.preventRunning?(t.preventDefault(),void t.stopPropagation()):void this.go(this.dom.getHref(n),n,t)},e.D=function(t){this.go(this.url.getHref(),"popstate",t)},e.I=function(t){for(var n=t.target;n&&!this.dom.getHref(n);)n=n.parentNode;if(n&&!this.prevent.checkLink(n,t,this.dom.getHref(n)))return n},e.q=function(){var t=this.url.getHref(),n={container:this.dom.getContainer(),html:this.dom.getHtml(),namespace:this.dom.getNamespace(),url:r({href:t},this.url.parse(t))};this.C={current:n,next:r({},this.schemaPage),trigger:void 0},this.hooks.do("reset",this.data)},n(t,[{key:"data",get:function(){return this.C}},{key:"wrapper",get:function(){return this._}}]),t}())}));
+
+
+},{}],"js/app.js":[function(require,module,exports) {
 "use strict";
 
 Object.defineProperty(exports, "__esModule", {
@@ -53455,17 +52964,17 @@ var THREE = _interopRequireWildcard(require("three"));
 
 var _asscroll = _interopRequireDefault(require("@ashthornton/asscroll"));
 
-var _OrbitControls = require("three/examples/jsm/controls/OrbitControls");
-
-var _vertex = _interopRequireDefault(require("./shaders/vertex.glsl"));
+var _OrbitControls = require("three/examples/jsm/controls/OrbitControls.js");
 
 var _fragment = _interopRequireDefault(require("./shaders/fragment.glsl"));
 
-var _texture = _interopRequireDefault(require("../img/texture.jpg"));
+var _vertex = _interopRequireDefault(require("./shaders/vertex.glsl"));
 
-var dat = _interopRequireWildcard(require("dat-gui"));
+var dat = _interopRequireWildcard(require("dat.gui"));
 
 var _gsap = _interopRequireDefault(require("gsap"));
+
+var _core = _interopRequireDefault(require("@barba/core"));
 
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
@@ -53498,15 +53007,16 @@ var Sketch = /*#__PURE__*/function () {
     this.container = options.domElement;
     this.width = this.container.offsetWidth;
     this.height = this.container.offsetHeight;
-    this.camera = new THREE.PerspectiveCamera(70, this.width / this.height, 10, 1000);
+    this.camera = new THREE.PerspectiveCamera(30, this.width / this.height, 10, 1000);
     this.camera.position.z = 600;
-    this.camera.fov = Math.atan(this.height / 2 / 600) * 180 / Math.PI * 2;
+    this.camera.fov = 2 * Math.atan(this.height / 2 / 600) * 180 / Math.PI;
+    this.imagesAdded = 0;
     this.scene = new THREE.Scene();
     this.renderer = new THREE.WebGLRenderer({
       antialias: true,
       alpha: true
     });
-    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    this.renderer.setPixelRatio(window.devicePixelRatio);
     this.container.appendChild(this.renderer.domElement);
     this.controls = new _OrbitControls.OrbitControls(this.camera, this.renderer.domElement);
     this.materials = [];
@@ -53514,19 +53024,120 @@ var Sketch = /*#__PURE__*/function () {
       disableRaf: true
     });
     this.asscroll.enable({
-      horizontalScroll: true
+      horizontalScroll: !document.body.classList.contains('b-inside')
     });
-    this.time = 0; // this.setUpSettings()
-
+    this.time = 0;
     this.addObjects();
+    this.addClickEvents();
     this.resize();
     this.render();
+    this.barba();
     this.setupResize();
   }
 
   _createClass(Sketch, [{
-    key: "setUpSettings",
-    value: function setUpSettings() {
+    key: "barba",
+    value: function barba() {
+      this.animationRunning = false;
+      var that = this;
+
+      _core.default.init({
+        transitions: [{
+          name: 'from-home-transition',
+          from: {
+            namespace: ["home"]
+          },
+          leave: function leave(data) {
+            that.animationRunning = true;
+            that.asscroll.disable();
+            return _gsap.default.timeline().to(data.current.container, {
+              opacity: 0.,
+              duration: 0.5
+            });
+          },
+          enter: function enter(data) {
+            that.asscroll = new _asscroll.default({
+              disableRaf: true,
+              containerElement: data.next.container.querySelector("[asscroll-container]")
+            });
+            that.asscroll.enable({
+              newScrollElements: data.next.container.querySelector('.scroll-wrap')
+            });
+            return _gsap.default.timeline().from(data.next.container, {
+              opacity: 0.,
+              onComplete: function onComplete() {
+                that.container.style.visibility = "hidden";
+                that.animationRunning = false;
+              }
+            });
+          }
+        }, {
+          name: 'from-inside-page-transition',
+          from: {
+            namespace: ["inside"]
+          },
+          leave: function leave(data) {
+            that.asscroll.disable();
+            return _gsap.default.timeline().to('.curtain', {
+              duration: 0.3,
+              y: 0
+            }).to(data.current.container, {
+              opacity: 0.
+            });
+          },
+          enter: function enter(data) {
+            that.asscroll = new _asscroll.default({
+              disableRaf: true,
+              containerElement: data.next.container.querySelector("[asscroll-container]")
+            });
+            that.asscroll.enable({
+              horizontalScroll: true,
+              newScrollElements: data.next.container.querySelector('.scroll-wrap')
+            }); // cleeaning old arrays
+
+            that.imageStore.forEach(function (m) {
+              that.scene.remove(m.mesh);
+            });
+            that.imageStore = [];
+            that.materials = [];
+            that.addObjects();
+            that.resize();
+            that.addClickEvents();
+            that.container.style.visibility = "visible";
+            return _gsap.default.timeline().to('.curtain', {
+              duration: 0.3,
+              y: "-100%"
+            }).from(data.next.container, {
+              opacity: 0.
+            });
+          }
+        }]
+      });
+    }
+  }, {
+    key: "addClickEvents",
+    value: function addClickEvents() {
+      this.imageStore.forEach(function (i) {
+        i.img.addEventListener('click', function () {
+          var tl = _gsap.default.timeline().to(i.mesh.material.uniforms.uCorners.value, {
+            x: 1,
+            duration: 0.4
+          }).to(i.mesh.material.uniforms.uCorners.value, {
+            y: 1,
+            duration: 0.4
+          }, 0.1).to(i.mesh.material.uniforms.uCorners.value, {
+            z: 1,
+            duration: 0.4
+          }, 0.2).to(i.mesh.material.uniforms.uCorners.value, {
+            w: 1,
+            duration: 0.4
+          }, 0.3);
+        });
+      });
+    }
+  }, {
+    key: "setupSettings",
+    value: function setupSettings() {
       this.settings = {
         progress: 0
       };
@@ -53543,7 +53154,7 @@ var Sketch = /*#__PURE__*/function () {
       this.renderer.setSize(this.width, this.height);
       this.camera.aspect = this.width / this.height;
       this.camera.updateProjectionMatrix();
-      this.camera.fov = Math.atan(this.height / 2 / 600) * 180 / Math.PI * 2;
+      this.camera.fov = 2 * Math.atan(this.height / 2 / 600) * 180 / Math.PI;
       this.materials.forEach(function (m) {
         m.uniforms.uResolution.value.x = _this.width;
         m.uniforms.uResolution.value.y = _this.height;
@@ -53571,20 +53182,19 @@ var Sketch = /*#__PURE__*/function () {
     value: function addObjects() {
       var _this2 = this;
 
-      this.geometry = new THREE.PlaneGeometry(1, 1, 100, 100);
+      this.geometry = new THREE.PlaneBufferGeometry(1, 1, 100, 100);
+      console.log(this.geometry);
       this.material = new THREE.ShaderMaterial({
         // wireframe: true,
-        vertexShader: _vertex.default,
-        fragmentShader: _fragment.default,
         uniforms: {
-          uTime: {
-            value: 1
+          time: {
+            value: 1.0
           },
           uProgress: {
             value: 0
           },
           uTexture: {
-            value: new THREE.TextureLoader().load(_texture.default)
+            value: null
           },
           uTextureSize: {
             value: new THREE.Vector2(100, 100)
@@ -53598,12 +53208,11 @@ var Sketch = /*#__PURE__*/function () {
           uQuadSize: {
             value: new THREE.Vector2(300, 300)
           }
-        }
+        },
+        vertexShader: _vertex.default,
+        fragmentShader: _fragment.default
       });
       this.mesh = new THREE.Mesh(this.geometry, this.material);
-      this.mesh.scale.set(300, 300, 1); // this.scene.add(this.mesh);
-
-      this.mesh.position.x = 300;
       this.images = _toConsumableArray(document.querySelectorAll('.js-image'));
       this.imageStore = this.images.map(function (img) {
         var bounds = img.getBoundingClientRect();
@@ -53615,36 +53224,6 @@ var Sketch = /*#__PURE__*/function () {
         var texture = new THREE.Texture(img);
         texture.needsUpdate = true;
         m.uniforms.uTexture.value = texture;
-        img.addEventListener('mouseover', function () {
-          _this2.tl = _gsap.default.timeline().to(m.uniforms.uCorners.value, {
-            x: 1,
-            duration: 0.4
-          }).to(m.uniforms.uCorners.value, {
-            y: 1,
-            duration: 0.4
-          }, 0.1).to(m.uniforms.uCorners.value, {
-            z: 1,
-            duration: 0.4
-          }, 0.2).to(m.uniforms.uCorners.value, {
-            w: 1,
-            duration: 0.4
-          }, 0.5);
-        });
-        img.addEventListener('mouseout', function () {
-          _this2.tl = _gsap.default.timeline().to(m.uniforms.uCorners.value, {
-            x: 0,
-            duration: 0.4
-          }).to(m.uniforms.uCorners.value, {
-            y: 0,
-            duration: 0.4
-          }, 0.1).to(m.uniforms.uCorners.value, {
-            z: 0,
-            duration: 0.4
-          }, 0.2).to(m.uniforms.uCorners.value, {
-            w: 0,
-            duration: 0.4
-          }, 0.5);
-        });
         var mesh = new THREE.Mesh(_this2.geometry, m);
 
         _this2.scene.add(mesh);
@@ -53665,22 +53244,20 @@ var Sketch = /*#__PURE__*/function () {
     value: function setPosition() {
       var _this3 = this;
 
-      this.imageStore.forEach(function (obj) {
-        obj.mesh.position.x = -_this3.asscroll.currentPos + obj.left - _this3.width / 2 + obj.width / 2;
-        obj.mesh.position.y = -obj.top + _this3.height / 2 - obj.height / 2;
-      });
+      if (!this.animationRunning) {
+        this.imageStore.forEach(function (o) {
+          o.mesh.position.x = -_this3.asscroll.currentPos + o.left - _this3.width / 2 + o.width / 2;
+          o.mesh.position.y = -o.top + _this3.height / 2 - o.height / 2;
+        });
+      }
     }
   }, {
     key: "render",
     value: function render() {
       this.time += 0.05;
-      this.material.uniforms.uTime.value = this.time;
+      this.material.uniforms.time.value = this.time;
       this.asscroll.update();
-      this.setPosition(); // this.material.uniforms.uProgress.value = this.settings.progress
-      // this.tl.progress(this.settings.progress)
-
-      this.mesh.rotation.x = this.time / 2000;
-      this.mesh.rotation.y = this.time / 1000;
+      this.setPosition();
       this.renderer.render(this.scene, this.camera);
       requestAnimationFrame(this.render.bind(this));
     }
@@ -53693,7 +53270,7 @@ exports.default = Sketch;
 new Sketch({
   domElement: document.getElementById('container')
 });
-},{"three":"../../../node_modules/three/build/three.module.js","@ashthornton/asscroll":"../../../node_modules/@ashthornton/asscroll/build/asscroll.js","three/examples/jsm/controls/OrbitControls":"../../../node_modules/three/examples/jsm/controls/OrbitControls.js","./shaders/vertex.glsl":"js/shaders/vertex.glsl","./shaders/fragment.glsl":"js/shaders/fragment.glsl","../img/texture.jpg":"img/texture.jpg","dat-gui":"../../../node_modules/dat-gui/index.js","gsap":"../../../node_modules/gsap/index.js"}],"../../../../../opt/homebrew/lib/node_modules/parcel-bundler/src/builtins/hmr-runtime.js":[function(require,module,exports) {
+},{"three":"../../../node_modules/three/build/three.module.js","@ashthornton/asscroll":"../../../node_modules/@ashthornton/asscroll/build/asscroll.js","three/examples/jsm/controls/OrbitControls.js":"../../../node_modules/three/examples/jsm/controls/OrbitControls.js","./shaders/fragment.glsl":"js/shaders/fragment.glsl","./shaders/vertex.glsl":"js/shaders/vertex.glsl","dat.gui":"../../../node_modules/dat.gui/build/dat.gui.module.js","gsap":"../../../node_modules/gsap/index.js","@barba/core":"../../../node_modules/@barba/core/dist/barba.umd.js"}],"../../../../../opt/homebrew/lib/node_modules/parcel-bundler/src/builtins/hmr-runtime.js":[function(require,module,exports) {
 var global = arguments[3];
 var OVERLAY_ID = '__parcel__error__overlay__';
 var OldModule = module.bundle.Module;
@@ -53721,7 +53298,7 @@ var parent = module.bundle.parent;
 if ((!parent || !parent.isParcelRequire) && typeof WebSocket !== 'undefined') {
   var hostname = "" || location.hostname;
   var protocol = location.protocol === 'https:' ? 'wss' : 'ws';
-  var ws = new WebSocket(protocol + '://' + hostname + ':' + "53246" + '/');
+  var ws = new WebSocket(protocol + '://' + hostname + ':' + "50085" + '/');
 
   ws.onmessage = function (event) {
     checkedAssets = {};
